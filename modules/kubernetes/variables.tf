@@ -70,3 +70,9 @@ variable "gpu_operator_ns" {
   description = "Namespace for the NVIDIA GPU operator"
   default     = "gpu-operator"
 }
+
+variable "letsencrypt_acme_server" {
+  type        = string
+  description = "Acme server"
+  value       = "https://acme-staging-v02.api.letsencrypt.org/directory"
+}
