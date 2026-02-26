@@ -27,8 +27,34 @@ curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_VERSION=${rke2_version} sh -
 sudo systemctl enable --now rke2-server
 
 # 5. Wait for Service to be Active
-echo "Waiting for rke2-server service to start..."
-until sudo systemctl is-active --quiet rke2-server; do
+TIMEOUT=600 # 10 minutes
+END_TIME=$((SECONDS + TIMEOUT))
+
+echo "Waiting for rke2-server to start (Timeout: ${TIMEOUT}s)..."
+
+while true; do
+    # 1. Check if the service is active (Success)
+    if sudo systemctl is-active --quiet rke2-server; then
+        echo "Success: rke2-server is active."
+        break
+    fi
+
+    # 2. Check if the service explicitly failed (Early Exit)
+    if sudo systemctl is-failed --quiet rke2-server; then
+        echo "Error: rke2-server service entered a FAILED state."
+        echo "--- Last 20 lines of logs ---"
+        sudo journalctl -u rke2-server --no-pager -n 20
+        exit 1
+    fi
+
+    # 3. Check for Timeout
+    if [ "$SECONDS" -ge "$END_TIME" ]; then
+        echo "Error: Timed out waiting for rke2-server after ${TIMEOUT} seconds."
+        echo "--- Last 20 lines of logs ---"
+        sudo journalctl -u rke2-server --no-pager -n 20
+        exit 1
+    fi
+
     sleep 5
 done
 
