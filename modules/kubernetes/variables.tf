@@ -74,5 +74,5 @@ variable "gpu_operator_ns" {
 variable "letsencrypt_acme_server" {
   type        = string
   description = "Acme server"
-  value       = "https://acme-staging-v02.api.letsencrypt.org/directory"
+  default     = "https://acme-staging-v02.api.letsencrypt.org/directory"
 }

@@ -28,9 +28,9 @@ sudo systemctl enable --now rke2-server
 
 # 5. Wait for Service to be Active
 TIMEOUT=600 # 10 minutes
-END_TIME=$((SECONDS + TIMEOUT))
+END_TIME=$(( $${SECONDS} + $${TIMEOUT} ))
 
-echo "Waiting for rke2-server to start (Timeout: ${TIMEOUT}s)..."
+echo "Waiting for rke2-server to start (Timeout: $${TIMEOUT}s)..."
 
 while true; do
     # 1. Check if the service is active (Success)
@@ -48,8 +48,8 @@ while true; do
     fi
 
     # 3. Check for Timeout
-    if [ "$SECONDS" -ge "$END_TIME" ]; then
-        echo "Error: Timed out waiting for rke2-server after ${TIMEOUT} seconds."
+    if [ "$${SECONDS}" -ge "$${END_TIME}" ]; then
+        echo "Error: Timed out waiting for rke2-server after $${TIMEOUT} seconds."
         echo "--- Last 20 lines of logs ---"
         sudo journalctl -u rke2-server --no-pager -n 20
         exit 1
