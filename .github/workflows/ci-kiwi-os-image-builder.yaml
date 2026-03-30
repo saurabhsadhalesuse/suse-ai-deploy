@@ -22,8 +22,9 @@ jobs:
           sudo apt-get install -y curl gpg binutils qemu-utils jq bzip2 tar xorriso dosfstools e2fsprogs python3-kiwi rpm zypper
 
       - name: Initialize RPM Database
-        run: sudo rpm --initdb
-             sudo rm -rf /var/cache/kiwi/zypper
+        run: |
+          sudo rpm --initdb
+          sudo rm -rf /var/cache/kiwi/zypper
       
       - name: Build Image with KIWI
         run: |
