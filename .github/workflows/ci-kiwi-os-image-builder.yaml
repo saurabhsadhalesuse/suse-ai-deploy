@@ -9,56 +9,59 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04 # Use specific version for stability
+    runs-on: ubuntu-latest
+    outputs:
+      iso-file: ${{ steps.upload.outputs.iso-path }}
+      vhd-file: ${{ steps.upload.outputs.vhd-path }}
+      raw-file: ${{ steps.upload.outputs.raw-path }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Add OBS KIWI Repository & Install Tools
+      - name: Build ISO with KIWI
         run: |
-          curl -fsSL https://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/xUbuntu_24.04/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kiwi.gpg
-          echo 'deb [signed-by=/etc/apt/keyrings/kiwi.gpg] https://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/xUbuntu_24.04/ /' | sudo tee /etc/apt/sources.list.d/kiwi.list
-          sudo apt-get update
-          # Combined all installs to save time
-          sudo apt-get install -y curl gpg binutils qemu-utils jq bzip2 tar xorriso dosfstools e2fsprogs python3-kiwi rpm zypper
-
-      - name: Initialize RPM Database
+          docker run --rm --privileged --platform linux/amd64 \
+            -v "${BUILD_DIR}":/build opensuse/leap:15.6 bash -c "
+              zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
+              zypper --gpg-auto-import-keys refresh &&
+              zypper in -y python311-kiwi git binutils qemu-tools squashfs xorriso dosfstools e2fsprogs &&
+              kiwi system build --description /build --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss --target-dir /tmp/kiwi-outputs/ &&
+              cp /tmp/kiwi-outputs/*.iso /build/${IMAGE_NAME}.iso
+            "
+      - name: Install qemu-utils and tools
+        run: sudo apt update && sudo apt install -y qemu-utils jq bzip2 tar
+      - name: Convert ISO to QCOW2
         run: |
-          sudo rpm --initdb
-          sudo rm -rf /var/cache/kiwi/zypper
-      
-      - name: Build Image with KIWI
+          ISO_PATH="${BUILD_DIR}/${IMAGE_NAME}.iso"
+          QCOW2_PATH="${BUILD_DIR}/${IMAGE_NAME}.qcow2"
+          qemu-img convert -O qcow2 "$ISO_PATH" "$QCOW2_PATH"
+      - name: Convert ISO to RAW
         run: |
-          mkdir -p /tmp/kiwi-outputs
-          # Ensure RPM database is ready
-          sudo rpm --rebuilddb || true
-          # Build the image
-          sudo kiwi-ng system build \
-            --description "${{ env.BUILD_DIR }}" \
-            --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
-            --target-dir /tmp/kiwi-outputs/
-          
-          # Find the .raw file (KIWI naming can vary slightly, so we use a wildcard)
-          cp /tmp/kiwi-outputs/*.raw "${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.raw"
-
+          ISO_PATH="${BUILD_DIR}/${IMAGE_NAME}.iso"
+          RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
+          qemu-img convert -O raw "$ISO_PATH" "$RAW_PATH"
+          MB=$((1024 * 1024))
+          SIZE=$(qemu-img info -f raw --output json "$RAW_PATH" | jq -r '.["virtual-size"]')
+          ROUNDED_SIZE=$((($SIZE / $MB + 1) * $MB))
+          qemu-img resize -f raw "$RAW_PATH" "$ROUNDED_SIZE"
       - name: Convert RAW to VHD
         run: |
-          # Use GitHub env syntax to ensure paths are correct
-          RAW_PATH="${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.raw"
-          VHD_PATH="${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.vhd"
+          RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
+          VHD_PATH="${BUILD_DIR}/${IMAGE_NAME}.vhd"
           qemu-img convert -f raw -O vpc -o subformat=fixed,force_size "$RAW_PATH" "$VHD_PATH"
-      
       - name: Prepare RAW for Google Cloud
         run: |
-          RAW_PATH="${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.raw"
-          OUT_DIR="${{ env.BUILD_DIR }}"
+          RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
+          OUT_DIR="${BUILD_DIR}"
           cp "$RAW_PATH" "${OUT_DIR}/disk.raw"
-          tar --format=oldgnu -C "$OUT_DIR" -czf "${OUT_DIR}/${{ env.IMAGE_NAME }}.raw.tar.gz" disk.raw
-      
+          tar --format=oldgnu -C "$OUT_DIR" -czf "${OUT_DIR}/${IMAGE_NAME}.raw.tar.gz" disk.raw
+      - name: List files before upload
+        run: ls -lh "${BUILD_DIR}"
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        id: upload
+        uses: actions/upload-artifact@v6
         with:
           name: suse-ai-tf-os-image
           path: |
+            ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.iso
             ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.vhd
             ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.raw.tar.gz
 
@@ -68,19 +71,21 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - name: Download artifact from build
+        uses: actions/download-artifact@v5
         with:
           name: suse-ai-tf-os-image
           path: ./artifact
+      - name: Install GitHub CLI
+        run: sudo apt update && sudo apt install -y gh
       - name: Create Release
         run: |
-          # Note: IMAGE_NAME must be manually typed or redeclared here
-          IMAGE_NAME="opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64"
           gh release create "build-${GITHUB_RUN_NUMBER}" \
-            ./artifact/$IMAGE_NAME.vhd \
-            ./artifact/$IMAGE_NAME.raw.tar.gz \
-            --title "Certified openSUSE Leap 15.6 image - build-${GITHUB_RUN_NUMBER}" \
-            --notes "Native Ubuntu build."
+            ./artifact/${{ env.IMAGE_NAME }}.iso \
+            ./artifact/${{ env.IMAGE_NAME }}.vhd \
+            ./artifact/${{ env.IMAGE_NAME }}.raw.tar.gz \
+            --title "Certified openSUSE Leap 15.6 image for suse-ai-tf - build-${GITHUB_RUN_NUMBER}" \
+            --notes "Release automatically generated by GitHub Actions."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
