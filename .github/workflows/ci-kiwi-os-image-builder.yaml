@@ -23,6 +23,7 @@ jobs:
 
       - name: Initialize RPM Database
         run: sudo rpm --initdb
+             sudo rm -rf /var/cache/kiwi/zypper
       
       - name: Build Image with KIWI
         run: |
