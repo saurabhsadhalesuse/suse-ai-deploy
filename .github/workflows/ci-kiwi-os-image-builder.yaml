@@ -29,6 +29,8 @@ jobs:
       - name: Build Image with KIWI
         run: |
           mkdir -p /tmp/kiwi-outputs
+          # Ensure RPM database is ready
+          sudo rpm --rebuilddb || true
           # Build the image
           sudo kiwi-ng system build \
             --description "${{ env.BUILD_DIR }}" \
