@@ -39,6 +39,11 @@ jobs:
 
       - name: Install qemu-utils and tools
         run: sudo apt update && sudo apt install -y qemu-utils jq bzip2 tar
+      - name: Diagnose file permissions
+        run: |
+          ls -lh "${BUILD_DIR}/"
+          whoami
+          id
 
       - name: Convert RAW to VHD
         run: |
