@@ -38,13 +38,13 @@ jobs:
               chown $(stat -c '%u:%g' /build/appliance.kiwi) /build/${IMAGE_NAME}.qcow2 /build/${IMAGE_NAME}.raw
             "
 
+      - name: Fix output file ownership
+        run: |
+          sudo chown runner:runner "${BUILD_DIR}/${IMAGE_NAME}.qcow2"
+          sudo chown runner:runner "${BUILD_DIR}/${IMAGE_NAME}.raw"
+
       - name: Install qemu-utils and tools
         run: sudo apt update && sudo apt install -y qemu-utils jq bzip2 tar
-      - name: Diagnose file permissions
-        run: |
-          ls -lh "${BUILD_DIR}/"
-          whoami
-          id
 
       - name: Convert RAW to VHD
         run: |
