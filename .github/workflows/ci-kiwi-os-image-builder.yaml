@@ -35,7 +35,6 @@ jobs:
               kiwi system build --description /build --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss --target-dir /tmp/kiwi-outputs/ &&
               cp /tmp/kiwi-outputs/*.qcow2 /build/${IMAGE_NAME}.qcow2 &&
               cp /tmp/kiwi-outputs/*.raw /build/${IMAGE_NAME}.raw
-              chown $(stat -c '%u:%g' /build/appliance.kiwi) /build/${IMAGE_NAME}.qcow2 /build/${IMAGE_NAME}.raw
             "
 
       - name: Fix output file ownership
