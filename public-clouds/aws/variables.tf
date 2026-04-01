@@ -26,7 +26,7 @@ variable "os_disk_size" {
 variable "ssh_username" {
   description = "The default SSH user for the AMI"
   type        = string
-  default     = "ec2-user" # Default for openSUSE/Amazon Linux on AWS
+  default     = "opensuse" # Default for custom build image for suse-ai-tf
 }
 
 variable "create_ssh_key_pair" {
@@ -140,4 +140,20 @@ variable "rancher_insecure" {
   description = "Specifies whether to allow insecure connections to the Rancher API. Default is 'false'."
   type        = bool
   default     = false
+}
+
+variable "certified_os_image" {
+  description = "Specifies whether to use the SUSE AI TF OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'."
+  type        = bool
+  default     = false
+}
+
+variable "certified_os_image_tag" {
+  description = "Specifies which GitHub release to use for the Harvester OpenSUSE image. Default is 'build-1'."
+  type        = string
+  default     = "build-11"
+  validation {
+    condition     = can(regex("^build-[0-9]+$", var.certified_os_image_tag))
+    error_message = "Invalid value for certified_os_image_tag. Allowed values must match the format 'build-<number>'."
+  }
 }

@@ -16,6 +16,7 @@ variable "instance_public_ip" {
 variable "ssh_username" {
   description = "SSH username for logging into the instance"
   type        = string
+  default     = "opensuse"
 }
 
 variable "ssh_private_key_content" {
