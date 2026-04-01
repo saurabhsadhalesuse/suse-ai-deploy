@@ -32,6 +32,7 @@ module "infrastructure" {
   subnet_id            = var.subnet_id
   ip_cidr_range        = var.ip_cidr_range
   rke2_version         = var.rke2_version
+  certified_os_image   = var.certified_os_image
 }
 
 resource "null_resource" "wait_for_k8s_api" {
