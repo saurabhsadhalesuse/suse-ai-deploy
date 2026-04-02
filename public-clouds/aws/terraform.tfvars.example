@@ -42,7 +42,7 @@ cert_manager_namespace = "cert-manager"
 # Specify the namespace where you want to deploy NVIDIA_GPU_OPERATOR
 gpu_operator_ns = "gpu-operator"
 
-## -- Specifies the Rancher API endpoint used to manage the Harvester cluster.
+## -- Specifies the Rancher API endpoint used to manage the SUSE AI cluster.
 rancher_api_url = ""
 
 ## -- Specifies the Rancher access key for authentication.
