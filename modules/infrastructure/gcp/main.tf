@@ -5,7 +5,7 @@ locals {
   instance_os_type     = "opensuse"
   os_image_family      = "opensuse-leap"
   os_image_project     = "opensuse-cloud"
-  ssh_username         = var.certified_os_image ? "opensuse" : "ec2-user"
+  ssh_username         = var.ssh_username
   certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.raw.tar.gz"
   certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
 }

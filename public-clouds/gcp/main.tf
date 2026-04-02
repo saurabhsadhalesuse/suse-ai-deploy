@@ -1,6 +1,6 @@
 locals {
   kc_path              = "${path.cwd}/kubeconfig-rke2.yaml"
-  ssh_username         = var.certified_os_image ? "opensuse" : "null"
+  ssh_username         = var.ssh_username
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
 }
 
