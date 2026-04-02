@@ -1,5 +1,5 @@
 data "aws_ami" "opensuse_leap" {
-  count = var.certified_os_image ? 0 : 1
+  count       = var.certified_os_image ? 0 : 1
   most_recent = true
   # Owner ID for openSUSE Marketplace images
   owners = ["679593333241"]

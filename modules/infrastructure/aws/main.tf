@@ -2,7 +2,7 @@ locals {
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
   instance_count       = 1
-  ssh_username = "opensuse" #Cloud username per the Custom build OS image
+  ssh_username         = var.certified_os_image ? "opensuse" : "ec2-user"
   certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
   certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
 }
@@ -26,7 +26,7 @@ resource "local_file" "private_key_pem" {
 }
 
 # Code for downloading the custom build OS image:
- 
+
 resource "null_resource" "download_certified_vhd" {
   count = var.certified_os_image ? 1 : 0
   provisioner "local-exec" {
@@ -198,7 +198,7 @@ resource "aws_route_table_association" "public_assoc" {
 resource "aws_security_group" "default" {
   name        = "${var.prefix}-sg"
   description = "Allow RKE2 and SSH"
-  vpc_id      = aws_vpc.default_vpc.id 
+  vpc_id      = aws_vpc.default_vpc.id
 
   ingress {
     description = "SSH"
@@ -251,8 +251,8 @@ resource "aws_security_group" "default" {
 #}
 
 resource "aws_instance" "opensuse_gpu" {
-  count         = local.instance_count
-# ami           = data.aws_ami.opensuse_leap.id
+  count = local.instance_count
+  # ami           = data.aws_ami.opensuse_leap.id
   ami           = var.certified_os_image ? aws_ami.opensuse_ami[0].id : data.aws_ami.opensuse_leap[0].id
   instance_type = var.instance_type
 
@@ -362,6 +362,6 @@ resource "null_resource" "cleanup_certified_vhd" {
   depends_on = [null_resource.retrieve_kubeconfig]
   count      = var.certified_os_image ? 1 : 0
   provisioner "local-exec" {
-   command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
+    command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
   }
 }
