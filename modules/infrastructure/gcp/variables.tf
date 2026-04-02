@@ -185,13 +185,13 @@ variable "rke2_version" {
 }
 
 variable "certified_os_image" {
-  description = "Specifies whether to use the OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'."
+  description = "Specifies whether to use the SUSE AI TF OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'."
   type        = bool
   default     = false
 }
 
 variable "certified_os_image_tag" {
-  description = "Specifies which GitHub release to use for the Harvester OpenSUSE image. Default is 'build-1'."
+  description = "Specifies which GitHub release to use for the OpenSUSE image. Default is 'build-11'."
   type        = string
   default     = "build-11"
   validation {
