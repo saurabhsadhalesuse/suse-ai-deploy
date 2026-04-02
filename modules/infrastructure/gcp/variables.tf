@@ -190,12 +190,3 @@ variable "certified_os_image" {
   default     = false
 }
 
-variable "certified_os_image_tag" {
-  description = "Specifies which GitHub release to use for the OpenSUSE image. Default is 'build-1'."
-  type        = string
-  default     = "build-1"
-  validation {
-    condition     = can(regex("^build-[0-9]+$", var.certified_os_image_tag))
-    error_message = "Invalid value for certified_os_image_tag. Allowed values must match the format 'build-<number>'."
-  }
-}
