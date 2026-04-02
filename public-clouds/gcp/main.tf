@@ -33,6 +33,7 @@ module "infrastructure" {
   ssh_public_key_path  = var.ssh_public_key_path
   ip_cidr_range        = var.ip_cidr_range
   rke2_version         = var.rke2_version
+  certified_os_image   = var.certified_os_image
 
 }
 
