@@ -29,11 +29,11 @@ resource "local_file" "public_key_pem" {
   file_permission = "0600"
 }
 
-# data "google_compute_image" "os_image" {
-#  family  = local.os_image_family
-#  project = local.os_image_project
-#
-#}
+data "google_compute_image" "os_image" {
+  family  = local.os_image_family
+  project = local.os_image_project
+
+}
 
 resource "null_resource" "download_image" {
   count = var.certified_os_image ? 1 : 0
