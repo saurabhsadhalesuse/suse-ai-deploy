@@ -114,6 +114,9 @@ resource "aws_ebs_snapshot_import" "opensuse_snapshot" {
   count       = var.certified_os_image ? 1 : 0
   description = "Opensuse Cerfied Image for SUSE AI TF"
   role_name   = aws_iam_role.vmimport[0].name
+  lifecycle {
+    ignore_changes = [description]
+  }
   disk_container {
     format = "VHD"
     user_bucket {
