@@ -1,0 +1,17 @@
+prefix       = "dkulkarni"
+rke2_version = "v1.32.10+rke2r1"
+
+# Azure specific location (corresponds to us-west-2 in AWS)
+location = "West US 2"
+
+# Azure Availability Zones are strings: "1", "2", or "3"
+zone = "1"
+
+# Equivalent to AWS g4dn.xlarge (1x NVIDIA T4 GPU)
+instance_type = "Standard_NC4as_T4_v3"
+
+# Root disk size matching your AWS setup
+os_disk_size = 150
+
+## -- Keep it true if using custom built opensuse image, false if using marketplace AMI
+certified_os_image = true
