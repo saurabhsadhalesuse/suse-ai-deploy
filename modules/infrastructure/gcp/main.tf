@@ -138,7 +138,7 @@ resource "google_compute_instance" "default" {
       type = var.os_disk_type
       size = var.os_disk_size
       # image = data.google_compute_image.os_image.self_link
-      image = var.certified_os_image ? google_compute_image.upload_certified_image[0].self_link : data.google_compute_image.os_image.self_link
+      image = var.certified_os_image ? google_compute_image.upload_certified_image[0].self_link : data.google_compute_image.os_image[0].self_link
     }
   }
   # Add GPU here:
