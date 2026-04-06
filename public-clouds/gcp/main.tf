@@ -137,6 +137,6 @@ resource "null_resource" "apply_rancher_registration" {
   }
 
   # Ensure the null_resource only runs after the cluster token is generated
-  depends_on = [null_resource.wait_for_k8s_api,rancher2_cluster.rancher_cluster]
+  depends_on = [null_resource.wait_for_k8s_api, rancher2_cluster.rancher_cluster]
 }
 

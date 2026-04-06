@@ -42,7 +42,7 @@ resource "null_resource" "download_image" {
   count = var.certified_os_image ? 1 : 0
   provisioner "local-exec" {
     command = <<EOT
-      curl -fL -o ${path.cwd}/${var.prefix}-image.tar.gz ${local.certified_image_url}
+      curl -L -o "${path.cwd}/${local.certified_image_name}" "${local.certified_image_url}"
     EOT
   }
 }
