@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# 1. Check if the script has already finished in a previous boot
+DONE_FILE="/var/log/setup_done.marker"
+if [ -f "$DONE_FILE" ]; then
+    echo "Setup already completed. Exiting to avoid reboot loop."
+    exit 0
+fi
+
+# 2. Standard openSUSE commands 
+sudo zypper refresh
+sudo zypper install -y curl jq
+
+# 3. Add NVIDIA Repository
+sudo zypper ar https://developer.download.nvidia.com/compute/cuda/repos/opensuse15/x86_64/cuda-opensuse15.repo
+sudo zypper --gpg-auto-import-keys refresh
+
+# 4. Install Drivers
+sudo zypper install -y --auto-agree-with-licenses nv-prefer-signed-open-driver && export version=$(rpm -qa --queryformat '%%{VERSION}\n' nv-prefer-signed-open-driver | cut -d "_" -f1 | sort -u | tail -n 1) && zypper install -y --auto-agree-with-licenses nvidia-compute-utils-G06=$${version} nvidia-persistenced=$${version}
+
+sudo sleep 20
+
+# 5. Environment Setup
+echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' | sudo tee -a /etc/profile.d/rke2.sh
+echo 'export PATH=$PATH:/var/lib/rancher/rke2/bin:/usr/local/nvidia/toolkit' | sudo tee -a /etc/profile.d/rke2.sh
+
+# 6. CREATE THE MARKER FILE before rebooting
+sudo touch "$DONE_FILE"
+sync
+
+# 7. Final Reboot (will only happen once now)
+#sudo reboot
