@@ -50,7 +50,7 @@ resource "helm_release" "cert_manager" {
   chart      = "cert-manager"
   timeout    = 600
   version    = "1.19.3"
-  
+
   repository_username = var.registry_username
   repository_password = var.registry_password
 
@@ -317,7 +317,7 @@ EOF
       sudo /var/lib/rancher/rke2/bin/kubectl apply --kubeconfig /etc/rancher/rke2/rke2.yaml -f gateway-secure.yaml
       EOT
     ]
-   
+
     connection {
       type        = "ssh"
       user        = var.ssh_username
@@ -366,6 +366,7 @@ spec:
   parentRefs:
   - name: suse-ai-gateway
     namespace: ${var.suse_ai_namespace}
+    sectionName: websecure
   rules:
   - matches:
     - path:
@@ -390,3 +391,49 @@ EOF
     }
   }
 }
+
+##5. Create a HTTPRoute for HTTP to HTTPS redirection:
+resource "null_resource" "https_redirection" {
+  depends_on = [null_resource.suse_ai_gateway_secure]
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Waiting for suse-ai-gateway to be Accepted...'",
+      "sudo /var/lib/rancher/rke2/bin/kubectl wait --kubeconfig /etc/rancher/rke2/rke2.yaml --for=condition=Accepted gateway/suse-ai-gateway -n ${var.suse_ai_namespace} --timeout=300s",
+
+      # HTTP-HTTPS Redirection HTTPRoute Manifest:
+      <<-EOT
+      cat <<EOF > https-redirection.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-redirect
+  namespace: ${var.suse_ai_namespace}
+spec:
+  parentRefs:
+  - name: suse-ai-gateway
+    namespace: ${var.suse_ai_namespace}
+    sectionName: web
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+EOF
+      EOT
+      ,
+      # Apply the httproute
+      "echo 'Applying HTTPRoute for HTTP to HTTPS redirection....'",
+      "sudo /var/lib/rancher/rke2/bin/kubectl apply --kubeconfig /etc/rancher/rke2/rke2.yaml -f https-redirection.yaml"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = var.ssh_username
+      private_key = var.ssh_private_key_content
+      host        = var.instance_public_ip
+    }
+  }
+}
+
