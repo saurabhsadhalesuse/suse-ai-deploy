@@ -226,7 +226,7 @@ variable "gpu_operator_ns" {
 }
 
 variable "rancher_api_url" {
-  description = "Specifies the Rancher API endpoint used to manage the Harvester cluster. Default is empty."
+  description = "Specifies the Rancher API endpoint used to manage the SUSE AI cluster. Default is empty."
   type        = string
   default     = ""
 }
