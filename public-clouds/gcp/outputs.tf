@@ -11,3 +11,8 @@ output "ssh_command" {
 output "kubeconfig_path" {
   value = "${path.cwd}/kubeconfig-rke2.yaml"
 }
+
+output "suse_ai_webui_url" {
+  description = "URL for accessing the SUSE AI webUI"
+  value       = "suse-ai.${module.infrastructure.instance_public_ip}.sslip.io"
+}

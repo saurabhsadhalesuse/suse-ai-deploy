@@ -33,6 +33,7 @@ module "infrastructure" {
   ssh_public_key_path  = var.ssh_public_key_path
   ip_cidr_range        = var.ip_cidr_range
   rke2_version         = var.rke2_version
+  certified_os_image   = var.certified_os_image
 
 }
 
@@ -136,6 +137,6 @@ resource "null_resource" "apply_rancher_registration" {
   }
 
   # Ensure the null_resource only runs after the cluster token is generated
-  depends_on = [rancher2_cluster.rancher_cluster]
+  depends_on = [null_resource.wait_for_k8s_api, rancher2_cluster.rancher_cluster]
 }
 

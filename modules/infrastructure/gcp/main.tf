@@ -5,7 +5,9 @@ locals {
   instance_os_type     = "opensuse"
   os_image_family      = "opensuse-leap"
   os_image_project     = "opensuse-cloud"
-  ssh_username         = local.instance_os_type
+  ssh_username         = var.ssh_username
+  certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.raw.tar.gz"
+  certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -28,8 +30,45 @@ resource "local_file" "public_key_pem" {
 }
 
 data "google_compute_image" "os_image" {
+  count = var.certified_os_image ? 0 : 1
+
   family  = local.os_image_family
   project = local.os_image_project
+
+  most_recent = true
+}
+
+resource "null_resource" "download_image" {
+  count = var.certified_os_image ? 1 : 0
+  provisioner "local-exec" {
+    command = <<EOT
+      curl -L -o "${path.cwd}/${local.certified_image_name}" "${local.certified_image_url}"
+    EOT
+  }
+}
+
+resource "google_storage_bucket" "images_bucket" {
+  count         = var.certified_os_image ? 1 : 0
+  name          = "${var.prefix}-certified-img-bucket"
+  location      = var.region
+  force_destroy = true
+}
+
+resource "google_storage_bucket_object" "certified_image" {
+  depends_on = [null_resource.download_image]
+  count      = var.certified_os_image ? 1 : 0
+  name       = "${var.prefix}-image-raw.tar.gz"
+  bucket     = google_storage_bucket.images_bucket[0].name
+  source     = "${path.cwd}/${var.prefix}-image.tar.gz"
+}
+
+resource "google_compute_image" "upload_certified_image" {
+  depends_on = [google_storage_bucket_object.certified_image]
+  count      = var.certified_os_image ? 1 : 0
+  name       = "${var.prefix}-opensuse-certified-img"
+  raw_disk {
+    source = "https://storage.googleapis.com/${google_storage_bucket.images_bucket[0].name}/${google_storage_bucket_object.certified_image[0].name}"
+  }
 }
 
 resource "google_compute_network" "vpc" {
@@ -96,9 +135,10 @@ resource "google_compute_instance" "default" {
   }
   boot_disk {
     initialize_params {
-      type  = var.os_disk_type
-      size  = var.os_disk_size
-      image = data.google_compute_image.os_image.self_link
+      type = var.os_disk_type
+      size = var.os_disk_size
+      # image = data.google_compute_image.os_image.self_link
+      image = var.certified_os_image ? google_compute_image.upload_certified_image[0].self_link : data.google_compute_image.os_image[0].self_link
     }
   }
   # Add GPU here:
