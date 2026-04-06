@@ -1,5 +1,5 @@
-# Specify the prefix for the Azure instance
-prefix       = "suse-ai-azure"
+# Specify the prefix for the Azure instance, make sure you do not use '-' or any number, uppercase character or special characters as azure does not allow it:
+prefix       = "suseaiazure"
 
 # Specify the version of RKE2 to be installed
 rke2_version = "v1.32.10+rke2r1" # Check RKE2 releases at - https://github.com/rancher/rke2/releases
@@ -57,7 +57,7 @@ gpu_operator_ns = "gpu-operator"
 #rancher_secret_key = ""
 
 ## -- Specifies whether to allow insecure connections to the Rancher API.
-r#ancher_insecure = false
+#rancher_insecure = false
 
 ## Specifies whether to use the OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'.
 certified_os_image = true
