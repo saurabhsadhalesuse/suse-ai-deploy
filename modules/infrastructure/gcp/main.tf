@@ -30,9 +30,12 @@ resource "local_file" "public_key_pem" {
 }
 
 data "google_compute_image" "os_image" {
+  count = var.certified_os_image ? 0 : 1
+
   family  = local.os_image_family
   project = local.os_image_project
 
+  most_recent = true
 }
 
 resource "null_resource" "download_image" {
