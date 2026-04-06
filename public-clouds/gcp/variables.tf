@@ -226,7 +226,7 @@ variable "gpu_operator_ns" {
 }
 
 variable "rancher_api_url" {
-  description = "Specifies the Rancher API endpoint used to manage the Harvester cluster. Default is empty."
+  description = "Specifies the Rancher API endpoint used to manage the SUSE AI cluster. Default is empty."
   type        = string
   default     = ""
 }
@@ -258,7 +258,7 @@ variable "certified_os_image" {
 }
 
 variable "certified_os_image_tag" {
-  description = "Specifies which GitHub release to use for the OpenSUSE image. Default is 'build-1'."
+  description = "Specifies which GitHub release to use for the apenSUSE image. Default is 'build-1'."
   type        = string
   default     = "build-11"
   validation {

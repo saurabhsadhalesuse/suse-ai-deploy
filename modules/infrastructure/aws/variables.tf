@@ -82,7 +82,7 @@ variable "certified_os_image" {
 }
 
 variable "certified_os_image_tag" {
-  description = "Specifies which GitHub release to use for the Harvester OpenSUSE image. Default is 'build-1'."
+  description = "Specifies which GitHub release to use for the OpenSUSE image. Default is 'build-1'."
   type        = string
   default     = "build-11"
   validation {
