@@ -1,7 +1,7 @@
 # Deployment of SUSE AI Stack on GPU powered instance on AWS
 
 ## Environment Prerequisites
-1. Before running Terraform, ensure you have the CLI tools configured for your target cloud.
+1. Before running Terraform, ensure you have the CLI tools configured for your target cloud. See the instruction to install CLI :- https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 
 ```bash
 # Install AWS CLI and configure credentials
