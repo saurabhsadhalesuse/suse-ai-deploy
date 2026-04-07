@@ -330,7 +330,7 @@ EOF
 ## Adding SUSE-AI-DEPLOYER using helm to deploy SUSE AI components:
 resource "helm_release" "suse_ai_deployer" {
   name             = "suse-ai"
-  namespace        = "suse-ai"
+  namespace        = var.suse_ai_namespace
   repository       = "oci://${var.registry_name}/charts"
   chart            = "suse-ai-deployer"
   version          = var.deployer_chart_version
