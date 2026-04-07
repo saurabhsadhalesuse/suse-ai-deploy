@@ -1,7 +1,7 @@
 # Deployment of SUSE AI Stack on GPU powered instance on Azure
 
 ## Environment Prerequisites
-Before running Terraform, ensure you have the Azure CLI configured for your target subscription.
+Before running Terraform, ensure you have the Azure CLI configured for your target subscription. See the instruction to install CLI https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest
 
 ```bash
 # Log in to your Azure account

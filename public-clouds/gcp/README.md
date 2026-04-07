@@ -1,7 +1,7 @@
 # Deployment of SUSE AI Stack on GPU powered instance on GCP
 
 ## Environment Prerequisites
-Before running Terraform, ensure you have the CLI tools configured for your target cloud.
+Before running Terraform, ensure you have the CLI tools configured for your target cloud. See the instruction to install CLI :- https://docs.cloud.google.com/sdk/docs/install-sdk
 
 ```bash
 # Install Google Cloud SDK and authenticate
