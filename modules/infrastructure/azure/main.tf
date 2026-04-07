@@ -187,6 +187,10 @@ resource "azurerm_network_interface_security_group_association" "nic_nsg" {
   count                     = local.instance_count
   network_interface_id      = azurerm_network_interface.nic[count.index].id
   network_security_group_id = azurerm_network_security_group.nsg.id
+
+  depends_on = [
+    azurerm_network_interface.nic
+  ]
 }
 
 # --- Virtual Machine ---
