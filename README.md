@@ -20,6 +20,30 @@ The project is split into two main sections:
 
 ## 🚀 Quick Start
 
+### Generate your AppCo Access token:
+
+* Login to https://apps.rancher.io
+* Once logged in, click on your profile avatar and click on `Settings`:
+<img width="2048" height="794" alt="Profile-Avatar" src="https://github.com/user-attachments/assets/77ee3416-4bdd-4a94-827d-1a2758ba10a3" />
+
+* In your profile settings, verify if you have the SUSE AI entitlement:
+<img width="2048" height="882" alt="VerifySUSEAISubscription" src="https://github.com/user-attachments/assets/4afd74fa-6212-4552-97c8-dc22985729ee" />
+
+* Then, click on `Access Tokens`:
+<img width="2048" height="882" alt="Access Token" src="https://github.com/user-attachments/assets/f5705f06-de63-4553-a5d2-49ebf01459a2" />
+
+* Add description and click on `Create Token`:
+<img width="2048" height="882" alt="Create Token" src="https://github.com/user-attachments/assets/73129aa8-3317-436b-acb4-8590d4e64cfb" />
+
+* Your token should be displayed as following:
+<img width="2048" height="882" alt="Screenshot 2026-04-09 at 8 13 13 PM" src="https://github.com/user-attachments/assets/39b85406-2b3f-4eca-b42c-65de4bdb1952" />
+
+This will provide you the required values for variables `registry_name`, `registry_username` and `registry_password`:
+* `registry_name` would be `dp.apps.rancher.io`
+* `registry_username` would be your email id OR the value you see in the above screenshot after `-u` option in the docker, helm, kubernetes and curl command.
+* `registry_password` would be the value you see after `-p` option in the docker, helm and kubernetes command. For curl, its after the delimeter `:` after option `-u`.
+
+
 ### 1. Prepare Variables
 
 Each environment requires a `terraform.tfvars` file. Copy the provided examples:
