@@ -341,10 +341,17 @@ resource "helm_release" "suse_ai_deployer" {
 
   values = [file("${path.module}/custom_suseai_deployer_values.yaml")]
 
-  set = [{
-    name  = "MILVUS_URI"
-    value = "http://suse-ai-milvus.${var.suse_ai_namespace}.svc.cluster.local:19530"
-  }]
+  set = [
+    {
+      name  = "open-webui.extraEnvVars[7].name"
+      value = "MILVUS_URI"
+    },
+    {
+      name  = "open-webui.extraEnvVars[7].value"
+      value = "http://suse-ai-milvus.${var.suse_ai_namespace}.svc.cluster.local:19530"
+    }
+  ]
+
 }
 
 ## 4. Create HTTPRoute for Open-WebUI
