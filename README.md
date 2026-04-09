@@ -4,6 +4,8 @@ This repository contains Terraform configurations to deploy complete SUSE AI sta
 
 ## 🏗 Architecture Overview
 
+<img width="1536" height="1024" alt="ChatGPT Image Apr 9, 2026, 04_00_50 PM" src="https://github.com/user-attachments/assets/e91b6981-d035-4125-a7c7-4caf76682e94" />
+
 The project is split into two main sections:
 
 - **Modules**: Reusable components for Cloud Infrastructure (AWS/GCP) and Kubernetes applications.
