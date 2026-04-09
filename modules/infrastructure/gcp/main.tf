@@ -59,7 +59,7 @@ resource "google_storage_bucket_object" "certified_image" {
   count      = var.certified_os_image ? 1 : 0
   name       = "${var.prefix}-image-raw.tar.gz"
   bucket     = google_storage_bucket.images_bucket[0].name
-  source     = "${path.cwd}/${var.prefix}-image.tar.gz"
+  source     = "${path.cwd}/${local.certified_image_name}"
 }
 
 resource "google_compute_image" "upload_certified_image" {
