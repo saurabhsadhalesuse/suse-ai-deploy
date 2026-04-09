@@ -1,6 +1,6 @@
 # SUSE AI Deployment on Public Clouds:
 
-This repository contains Terraform configurations to deploy a complete SUSE AI stack on GPU-enabled infrastructure. It automates the provisioning of cloud resources and the deployment of essential AI components.
+This repository contains Terraform configurations to deploy complete SUSE AI stack on GPU-enabled infrastructure on public clouds [AWS/Azure/GCP]. It automates the provisioning of cloud resources and the deployment of essential AI components.
 
 ## 🏗 Architecture Overview
 
@@ -13,8 +13,6 @@ The project is split into two main sections:
 
 * **Infrastructure**: GPU-optimized instances running openSUSE.
 * **Stack**: RKE2 (via startup scripts), NVIDIA GPU Operator, Ollama, Milvus, Open WebUI, and Cert-Manager.
-
-
 
 ---
 
@@ -36,6 +34,12 @@ For GCP:
 cp public-clouds/gcp/terraform.tfvars.example public-clouds/gcp/terraform.tfvars
 ```
 
+For Azure:
+
+```bash
+cp public-clouds/azure/terraform.tfvars.example public-clouds/azure/terraform.tfvars
+```
+
 ### 2. Deployment
 
 Deployment on AWS:
@@ -50,6 +54,14 @@ Deployment on GCP:
 
 ```bash
 cd public-clouds/gcp
+terraform init -upgrade
+terraform apply
+```
+
+Deployment on Azure:
+
+```bash
+cd public-clouds/azure
 terraform init -upgrade
 terraform apply
 ```
@@ -71,5 +83,5 @@ terraform apply
 To tear down the infrastructure and avoid costs:
 
 ```bash
-terraform destroy
+terraform state rm module.kubernetes && terraform destroy --auto-approve 
 ```
