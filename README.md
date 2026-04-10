@@ -24,13 +24,13 @@ The project is split into two main sections:
 
 * Login to https://apps.rancher.io
 * Once logged in, click on your profile avatar and click on `Settings`:
-<img width="2048" height="794" alt="Profile-Avatar" src="https://github.com/user-attachments/assets/77ee3416-4bdd-4a94-827d-1a2758ba10a3" />
+<img width="2048" height="794" alt="Profile-Avatar" src="https://github.com/user-attachments/assets/e3a38c9d-5b3a-44e1-81b5-6c86afa5ef95" />
 
 * In your profile settings, verify if you have the SUSE AI entitlement:
-<img width="2048" height="882" alt="VerifySUSEAISubscription" src="https://github.com/user-attachments/assets/4afd74fa-6212-4552-97c8-dc22985729ee" />
+<img width="2048" height="882" alt="VerifySUSEAISubscription" src="https://github.com/user-attachments/assets/16ea6ebb-a5de-47a0-8423-615765003d01" />
 
 * Then, click on `Access Tokens`:
-<img width="2048" height="882" alt="Access Token" src="https://github.com/user-attachments/assets/f5705f06-de63-4553-a5d2-49ebf01459a2" />
+<img width="2048" height="882" alt="Access Token" src="https://github.com/user-attachments/assets/c020ff26-e189-4f27-b5df-eaf878843c76" />
 
 * Add description and click on `Create Token`:
 <img width="2048" height="882" alt="Create Token" src="https://github.com/user-attachments/assets/73129aa8-3317-436b-acb4-8590d4e64cfb" />
