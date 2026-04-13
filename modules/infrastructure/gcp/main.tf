@@ -41,8 +41,14 @@ data "google_compute_image" "os_image" {
 resource "null_resource" "download_image" {
   count = var.certified_os_image ? 1 : 0
   provisioner "local-exec" {
-    command = <<EOT
-      curl -L -o "${path.cwd}/${local.certified_image_name}" "${local.certified_image_url}"
+    command = <<-EOT
+      set -e
+      if [ ! -f "${path.cwd}/${local.certified_image_name}" ]; then
+        echo "Downloading certified VHD..."
+        curl -L -o "${path.cwd}/${local.certified_image_name}" "${local.certified_image_url}"
+      else
+        echo "Certified VHD already exists, skipping download"
+      fi
     EOT
   }
 }
