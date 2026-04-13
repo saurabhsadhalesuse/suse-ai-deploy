@@ -310,10 +310,11 @@ resource "null_resource" "retrieve_kubeconfig" {
 }
 
 
-resource "null_resource" "cleanup_certified_vhd" {
-  depends_on = [null_resource.retrieve_kubeconfig]
-  count      = var.certified_os_image ? 1 : 0
-  provisioner "local-exec" {
-    command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
-  }
-}
+#resource "null_resource" "cleanup_certified_vhd" {
+#  depends_on = [null_resource.retrieve_kubeconfig]
+#  count      = var.certified_os_image ? 1 : 0
+#  provisioner "local-exec" {
+#    when    = destroy
+#    command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
+#  }
+#}
