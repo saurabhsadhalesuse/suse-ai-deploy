@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 locals {
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
@@ -5,6 +7,11 @@ locals {
   ssh_username         = var.certified_os_image ? "opensuse" : "ec2-user"
   certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
   certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
+
+  username    = element(split("/", data.aws_caller_identity.current.arn), length(split("/", data.aws_caller_identity.current.arn)) - 1)
+  common_tags = {
+    Owner = local.username
+ }
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -47,6 +54,8 @@ resource "null_resource" "download_certified_vhd" {
 resource "aws_s3_bucket" "images" {
   count  = var.certified_os_image ? 1 : 0
   bucket = "opensuse-vhd-${var.prefix}"
+
+  tags = local.common_tags
 }
 
 # Upload the OS image to the S3 Bucket:
@@ -141,9 +150,7 @@ resource "aws_ami" "opensuse_ami" {
     volume_size = 2
     volume_type = "gp3"
   }
-  tags = {
-    Name = "${var.prefix}-ami"
-  }
+  tags = merge(local.common_tags, { Name = "${var.prefix}-ami" })
 }
 
 # VPC
@@ -152,18 +159,14 @@ resource "aws_vpc" "default_vpc" {
   enable_dns_support   = true
   enable_dns_hostnames = true
 
-  tags = {
-    Name = "${var.prefix}-vpc"
-  }
+  tags = merge(local.common_tags, { Name = "${var.prefix}-vpc" })
 }
 
 # Internet Gateway
 resource "aws_internet_gateway" "default_igw" {
   vpc_id = aws_vpc.default_vpc.id
 
-  tags = {
-    Name = "${var.prefix}-igw"
-  }
+  tags = merge(local.common_tags, { Name = "${var.prefix}-igw" })
 }
 
 # Route Table
@@ -175,9 +178,7 @@ resource "aws_route_table" "default_rt" {
     gateway_id = aws_internet_gateway.default_igw.id
   }
 
-  tags = {
-    Name = "${var.prefix}-rt"
-  }
+  tags = merge(local.common_tags, { Name = "${var.prefix}-rt" })
 }
 
 # Subnet
@@ -186,9 +187,7 @@ resource "aws_subnet" "default_subnet" {
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
   availability_zone       = data.aws_availability_zones.available.names[0]
-  tags = {
-    Name = "${var.prefix}-subnet"
-  }
+  tags = merge(local.common_tags, { Name = "${var.prefix}-subnet" })
 }
 
 # Associate Route Table with Subnet
@@ -270,9 +269,7 @@ resource "aws_instance" "opensuse_gpu" {
 
   user_data = templatefile("${path.module}/scripts/startupscript.tftpl", {})
 
-  tags = {
-    Name = "${var.prefix}-opensuse-rke2"
-  }
+  tags = merge(local.common_tags, { Name = "${var.prefix}-opensuse-rke2" })
 }
 
 resource "null_resource" "wait_for_gpu" {
