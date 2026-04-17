@@ -63,6 +63,12 @@ variable "subnet_id" {
   default     = null
 }
 
+variable "associate_public_ip" {
+  description = "Set to true if using a public subnet, false for private."
+  type        = bool
+  default     = true
+}
+
 variable "ip_cidr_range" {
   description = "The IP range for the subnet"
   type        = string
