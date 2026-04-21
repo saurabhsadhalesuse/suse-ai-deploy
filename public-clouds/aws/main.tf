@@ -28,6 +28,7 @@ module "infrastructure" {
   ssh_private_key_path = var.ssh_private_key_path
   ssh_public_key_path  = var.ssh_public_key_path
   existing_key_name    = var.existing_key_name
+  use_existing_vpc     = var.use_existing_vpc
   vpc_id               = var.vpc_id
   subnet_id            = var.subnet_id
   ip_cidr_range        = var.ip_cidr_range

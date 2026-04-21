@@ -3,8 +3,8 @@ data "aws_caller_identity" "current" {}
 locals {
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
-  target_vpc_id        = var.vpc_id != null ? var.vpc_id : aws_vpc.default_vpc[0].id
-  target_subnet_id     = var.subnet_id != null ? var.subnet_id : aws_subnet.default_subnet[0].id
+  target_vpc_id        = var.use_existing_vpc ? var.vpc_id : aws_vpc.default_vpc[0].id
+  target_subnet_id     = var.use_existing_vpc ? var.subnet_id : aws_subnet.default_subnet[0].id
   host                 = var.associate_public_ip ? aws_instance.opensuse_gpu[0].public_ip : aws_instance.opensuse_gpu[0].private_ip
   instance_count       = 1
   ssh_username         = var.certified_os_image ? "opensuse" : "ec2-user"
@@ -158,7 +158,7 @@ resource "aws_ami" "opensuse_ami" {
 
 # VPC
 resource "aws_vpc" "default_vpc" {
-  count                = var.vpc_id == null ? 1 : 0
+  count                = var.use_existing_vpc ? 0 : 1
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
@@ -168,7 +168,7 @@ resource "aws_vpc" "default_vpc" {
 
 # Internet Gateway
 resource "aws_internet_gateway" "default_igw" {
-  count  = var.vpc_id == null ? 1 : 0
+  count  = var.use_existing_vpc ? 0 : 1
   vpc_id = local.target_vpc_id
 
   tags = merge(local.common_tags, { Name = "${var.prefix}-igw" })
@@ -176,7 +176,7 @@ resource "aws_internet_gateway" "default_igw" {
 
 # Route Table
 resource "aws_route_table" "default_rt" {
-  count  = var.vpc_id == null ? 1 : 0
+  count  = var.use_existing_vpc ? 0 : 1
   vpc_id = local.target_vpc_id
 
   route {
@@ -189,7 +189,7 @@ resource "aws_route_table" "default_rt" {
 
 # Subnet
 resource "aws_subnet" "default_subnet" {
-  count                   = var.subnet_id == null ? 1 : 0
+  count                   = var.use_existing_vpc ? 0 : 1
   vpc_id                  = local.target_vpc_id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true

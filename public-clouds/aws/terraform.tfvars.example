@@ -56,3 +56,12 @@ rancher_insecure = false
 
 ## -- Keep it true if using custom built opensuse image, false if using marketplace AMI
 certified_os_image = true
+
+## -- Keep it true if using existing VPC and SUBNET
+use_existing_vpc = false
+
+## -- Existing VPC ID
+vpc_id = ""  # add vpc_id only if setting use_existing_vpc = true
+
+## -- Existing SUBNET ID
+subnet_id = "" # add subnet_id only if setting use_existing_vpc = true
