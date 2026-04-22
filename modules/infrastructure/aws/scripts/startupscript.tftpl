@@ -11,6 +11,29 @@ fi
 sudo zypper refresh
 sudo zypper install -y curl jq
 
+# --- Install AWS SSM Agent and package ---
+
+# This repo contains the amazon-ssm-agent specifically built for openSUSE
+sudo zypper addrepo https://download.opensuse.org/repositories/Cloud:Tools/openSUSE_Leap_15.6/Cloud:Tools.repo
+
+# Refresh repositories and import the GPG key automatically
+sudo zypper --gpg-auto-import-keys refresh
+
+# Install the agent via the repository
+sudo zypper --non-interactive install amazon-ssm-agent
+
+sudo useradd -m ssm-user -s /bin/bash
+sudo chown -R ssm-user:ssm-user /home/ssm-user
+
+echo "fs.inotify.max_user_watches=524288" | sudo tee -a /etc/sysctl.conf
+echo "fs.inotify.max_user_instances=1024" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+# Enable and start the service
+sudo systemctl enable --now amazon-ssm-agent
+sudo systemctl start amazon-ssm-agent
+
+
 # 3. Add NVIDIA Repository
 sudo zypper ar https://developer.download.nvidia.com/compute/cuda/repos/opensuse15/x86_64/cuda-opensuse15.repo
 sudo zypper --gpg-auto-import-keys refresh

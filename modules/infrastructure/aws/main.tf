@@ -17,6 +17,37 @@ locals {
   }
 }
 
+# 1. Create the IAM Role
+resource "aws_iam_role" "ssm_role" {
+  name = "ssm-managed-instance-role"
+
+  # Trust policy allowing EC2 service to assume this role
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# 2. Attach the AWS Managed Policy for SSM
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  role       = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# 3. Create the Instance Profile (this is what you attach to the EC2)
+resource "aws_iam_instance_profile" "ssm_profile" {
+  name = "ssm-instance-profile"
+  role = aws_iam_role.ssm_role.name
+}
+
 resource "tls_private_key" "ssh_private_key" {
   count     = var.create_ssh_key_pair ? 1 : 0
   algorithm = "ED25519"
@@ -275,6 +306,7 @@ resource "aws_instance" "opensuse_gpu" {
     volume_size = var.os_disk_size
     volume_type = "gp3"
   }
+  iam_instance_profile = aws_iam_instance_profile.ssm_profile.name
 
   user_data = templatefile("${path.module}/scripts/startupscript.tftpl", {})
 
