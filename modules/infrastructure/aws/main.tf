@@ -199,7 +199,7 @@ resource "aws_subnet" "default_subnet" {
 
 # Associate Route Table with Subnet
 resource "aws_route_table_association" "public_assoc" {
-  count          = (var.subnet_id == null && var.vpc_id == null) ? 1 : 0
+  count          = var.use_existing_vpc ? 0 : 1
   subnet_id      = local.target_subnet_id
   route_table_id = aws_route_table.default_rt[0].id
 }
