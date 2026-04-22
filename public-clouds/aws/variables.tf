@@ -64,12 +64,6 @@ variable "vpc_id" {
     condition     = var.use_existing_vpc == false || var.vpc_id != null
     error_message = "vpc_id must be provided when use_existing_vpc is true."
   }
-
-  # Case 2: forbid vpc_id when creating new VPC
-  validation {
-    condition     = var.use_existing_vpc == true || var.vpc_id == null
-    error_message = "vpc_id must not be set when use_existing_vpc is false."
-  }
 }
 
 variable "subnet_id" {
@@ -81,12 +75,6 @@ variable "subnet_id" {
   validation {
     condition     = var.use_existing_vpc == false || var.subnet_id != null
     error_message = "subnet_id must be provided when use_existing_vpc is true."
-  }
-
-  # Case 2: forbid vpc_id when creating new VPC
-  validation {
-    condition     = var.use_existing_vpc == true || var.subnet_id == null
-    error_message = "subnet_id must not be set when use_existing_vpc is false."
   }
 }
 
