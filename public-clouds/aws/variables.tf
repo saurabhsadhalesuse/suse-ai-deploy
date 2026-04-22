@@ -49,14 +49,33 @@ variable "existing_key_name" {
   default = ""
 }
 
+variable "use_existing_vpc" {
+  type    = bool
+  default = false
+}
+
 variable "vpc_id" {
-  type    = string
-  default = null
+  description = "Existing VPC ID (leave null if creating a new VPC)"
+  type        = string
+  default     = null
+
+  # Case 1: require vpc_id when using existing VPC
+  validation {
+    condition     = var.use_existing_vpc == false || var.vpc_id != null
+    error_message = "vpc_id must be provided when use_existing_vpc is true."
+  }
 }
 
 variable "subnet_id" {
-  type    = string
-  default = null
+  description = "Existing Subnet ID (leave null if creating a new subnet)"
+  type        = string
+  default     = null
+
+  # Case 1: require vpc_id when using existing VPC
+  validation {
+    condition     = var.use_existing_vpc == false || var.subnet_id != null
+    error_message = "subnet_id must be provided when use_existing_vpc is true."
+  }
 }
 
 variable "ip_cidr_range" {

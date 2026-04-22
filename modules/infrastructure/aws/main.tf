@@ -3,15 +3,18 @@ data "aws_caller_identity" "current" {}
 locals {
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
+  target_vpc_id        = var.use_existing_vpc ? var.vpc_id : aws_vpc.default_vpc[0].id
+  target_subnet_id     = var.use_existing_vpc ? var.subnet_id : aws_subnet.default_subnet[0].id
+  host                 = var.associate_public_ip ? aws_instance.opensuse_gpu[0].public_ip : aws_instance.opensuse_gpu[0].private_ip
   instance_count       = 1
   ssh_username         = var.certified_os_image ? "opensuse" : "ec2-user"
   certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
   certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
 
-  username    = element(split("/", data.aws_caller_identity.current.arn), length(split("/", data.aws_caller_identity.current.arn)) - 1)
+  username = element(split("/", data.aws_caller_identity.current.arn), length(split("/", data.aws_caller_identity.current.arn)) - 1)
   common_tags = {
     Owner = local.username
- }
+  }
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -155,6 +158,7 @@ resource "aws_ami" "opensuse_ami" {
 
 # VPC
 resource "aws_vpc" "default_vpc" {
+  count                = var.use_existing_vpc ? 0 : 1
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
@@ -164,18 +168,20 @@ resource "aws_vpc" "default_vpc" {
 
 # Internet Gateway
 resource "aws_internet_gateway" "default_igw" {
-  vpc_id = aws_vpc.default_vpc.id
+  count  = var.use_existing_vpc ? 0 : 1
+  vpc_id = local.target_vpc_id
 
   tags = merge(local.common_tags, { Name = "${var.prefix}-igw" })
 }
 
 # Route Table
 resource "aws_route_table" "default_rt" {
-  vpc_id = aws_vpc.default_vpc.id
+  count  = var.use_existing_vpc ? 0 : 1
+  vpc_id = local.target_vpc_id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.default_igw.id
+    gateway_id = aws_internet_gateway.default_igw[0].id
   }
 
   tags = merge(local.common_tags, { Name = "${var.prefix}-rt" })
@@ -183,24 +189,26 @@ resource "aws_route_table" "default_rt" {
 
 # Subnet
 resource "aws_subnet" "default_subnet" {
-  vpc_id                  = aws_vpc.default_vpc.id
+  count                   = var.use_existing_vpc ? 0 : 1
+  vpc_id                  = local.target_vpc_id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
   availability_zone       = data.aws_availability_zones.available.names[0]
-  tags = merge(local.common_tags, { Name = "${var.prefix}-subnet" })
+  tags                    = merge(local.common_tags, { Name = "${var.prefix}-subnet" })
 }
 
 # Associate Route Table with Subnet
 resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.default_subnet.id
-  route_table_id = aws_route_table.default_rt.id
+  count          = var.use_existing_vpc ? 0 : 1
+  subnet_id      = local.target_subnet_id
+  route_table_id = aws_route_table.default_rt[0].id
 }
 
 
 resource "aws_security_group" "default" {
   name        = "${var.prefix}-sg"
   description = "Allow RKE2 and SSH"
-  vpc_id      = aws_vpc.default_vpc.id
+  vpc_id      = local.target_vpc_id
 
   ingress {
     description = "SSH"
@@ -258,9 +266,10 @@ resource "aws_instance" "opensuse_gpu" {
   ami           = var.certified_os_image ? aws_ami.opensuse_ami[0].id : data.aws_ami.opensuse_leap[0].id
   instance_type = var.instance_type
 
-  key_name               = var.create_ssh_key_pair ? aws_key_pair.generated_key[0].key_name : var.existing_key_name
-  vpc_security_group_ids = [aws_security_group.default.id]
-  subnet_id              = aws_subnet.default_subnet.id
+  key_name                    = var.create_ssh_key_pair ? aws_key_pair.generated_key[0].key_name : var.existing_key_name
+  vpc_security_group_ids      = [aws_security_group.default.id]
+  subnet_id                   = local.target_subnet_id
+  associate_public_ip_address = var.associate_public_ip
 
   root_block_device {
     volume_size = var.os_disk_size
@@ -280,7 +289,7 @@ resource "null_resource" "wait_for_gpu" {
       type        = "ssh"
       user        = local.ssh_username
       private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
-      host        = aws_instance.opensuse_gpu[0].public_ip
+      host        = local.host
       timeout     = "15m"
     }
 
@@ -311,7 +320,7 @@ resource "null_resource" "rke2_installation" {
       type        = "ssh"
       user        = local.ssh_username
       private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
-      host        = aws_instance.opensuse_gpu[0].public_ip
+      host        = local.host
     }
   }
 }
@@ -330,7 +339,7 @@ resource "null_resource" "retrieve_kubeconfig" {
       type        = "ssh"
       user        = local.ssh_username
       private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
-      host        = aws_instance.opensuse_gpu[0].public_ip
+      host        = local.host
     }
   }
 
