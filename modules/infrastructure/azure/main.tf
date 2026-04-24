@@ -214,10 +214,10 @@ resource "azurerm_linux_virtual_machine" "opensuse_gpu" {
     storage_account_type = "Premium_LRS"
     disk_size_gb         = var.os_disk_size
   }
- 
+
   source_image_id = var.certified_os_image ? azurerm_image.suseaitf[0].id : null
 
-  custom_data = base64encode(templatefile("${path.module}/scripts/startupscript.tftpl", {}))
+  custom_data = base64encode(templatefile("${path.module}/../scripts/startupscript.tftpl", { cloud_provider = "azure" }))
 
   tags = {
     Name = "${var.prefix}-opensuse-rke2"
@@ -255,9 +255,10 @@ resource "null_resource" "rke2_installation" {
 
   provisioner "remote-exec" {
     inline = [
-      templatefile("${path.module}/scripts/rke2-localpath-install.sh", {
-        public_ip    = azurerm_public_ip.pip[0].ip_address
-        rke2_version = var.rke2_version
+      templatefile("${path.module}/../scripts/rke2-localpath-install.sh", {
+        public_ip      = azurerm_public_ip.pip[0].ip_address
+        rke2_version   = var.rke2_version
+        cloud_provider = "azure"
       })
     ]
 

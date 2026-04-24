@@ -174,7 +174,7 @@ resource "google_compute_instance" "default" {
     serial-port-logging-enable = "TRUE"
     serial-port-enable         = "TRUE"
     ssh-keys                   = var.create_ssh_key_pair ? "${local.ssh_username}:${tls_private_key.ssh_private_key[0].public_key_openssh}" : "${local.ssh_username}:${file(local.public_ssh_key_path)}"
-    startup-script             = templatefile("${path.module}/scripts/startupscript.tftpl", {})
+    startup-script             = templatefile("${path.module}/../scripts/startupscript.tftpl", { cloud_provider = "gcp" })
   }
   lifecycle {
     create_before_destroy = true
@@ -215,9 +215,10 @@ resource "null_resource" "rke2_installation" {
 
   provisioner "remote-exec" {
     inline = [
-      templatefile("${path.module}/scripts/rke2-localpath-install.sh", {
-        public_ip    = google_compute_instance.default[0].network_interface[0].access_config[0].nat_ip
-        rke2_version = var.rke2_version
+      templatefile("${path.module}/../scripts/rke2-localpath-install.sh", {
+        public_ip      = google_compute_instance.default[0].network_interface[0].access_config[0].nat_ip
+        rke2_version   = var.rke2_version
+        cloud_provider = "gcp"
       })
     ]
 

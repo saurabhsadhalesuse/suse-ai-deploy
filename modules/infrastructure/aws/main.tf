@@ -308,7 +308,7 @@ resource "aws_instance" "opensuse_gpu" {
   }
   iam_instance_profile = aws_iam_instance_profile.ssm_profile.name
 
-  user_data = templatefile("${path.module}/scripts/startupscript.tftpl", {})
+  user_data = templatefile("${path.module}/../scripts/startupscript.tftpl", { cloud_provider = "aws" })
 
   tags = merge(local.common_tags, { Name = "${var.prefix}-opensuse-rke2" })
 }
@@ -342,9 +342,10 @@ resource "null_resource" "rke2_installation" {
 
   provisioner "remote-exec" {
     inline = [
-      templatefile("${path.module}/scripts/rke2-localpath-install.sh", {
-        public_ip    = aws_instance.opensuse_gpu[0].public_ip
-        rke2_version = var.rke2_version
+      templatefile("${path.module}/../scripts/rke2-localpath-install.sh", {
+        public_ip      = aws_instance.opensuse_gpu[0].public_ip
+        rke2_version   = var.rke2_version
+        cloud_provider = "aws"
       })
     ]
 
