@@ -24,6 +24,8 @@ sudo zypper --non-interactive install amazon-ssm-agent
 
 sudo useradd -m ssm-user -s /bin/bash
 sudo chown -R ssm-user:ssm-user /home/ssm-user
+echo "ssm-user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ssm-user
+sudo chmod 440 /etc/sudoers.d/ssm-user
 
 echo "fs.inotify.max_user_watches=524288" | sudo tee -a /etc/sysctl.conf
 echo "fs.inotify.max_user_instances=1024" | sudo tee -a /etc/sysctl.conf
