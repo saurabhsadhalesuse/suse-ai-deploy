@@ -1,17 +1,17 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
-  public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
-  target_vpc_id        = var.use_existing_vpc ? var.vpc_id : aws_vpc.default_vpc[0].id
-  target_subnet_id     = var.use_existing_vpc ? var.subnet_id : aws_subnet.default_subnet[0].id
-  host                 = var.associate_public_ip ? aws_instance.opensuse_gpu[0].public_ip : aws_instance.opensuse_gpu[0].private_ip
-  instance_count       = 1
-  ssh_username         = var.certified_os_image ? "opensuse" : "ec2-user"
-  certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
-  certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
-
-  username = element(split("/", data.aws_caller_identity.current.arn), length(split("/", data.aws_caller_identity.current.arn)) - 1)
+  private_ssh_key_path   = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
+  public_ssh_key_path    = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
+  target_vpc_id          = var.use_existing_vpc ? var.vpc_id : aws_vpc.default_vpc[0].id
+  target_subnet_id       = var.use_existing_vpc ? var.subnet_id : aws_subnet.default_subnet[0].id
+  host                   = var.associate_public_ip ? aws_instance.opensuse_gpu[0].public_ip : aws_instance.opensuse_gpu[0].private_ip
+  instance_count         = 1
+  ssh_username           = var.certified_os_image ? "opensuse" : "ec2-user"
+  certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
+  certified_image_url    = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
+  certified_image_sha512 = "5cdf863e0548498585e951e861adee67054fb7f762161cdbf6e469b9a63564aa256a53cb9f8009cac9aaf6c7467de938a9c2a3d3ea2c756aa99f295b487defc5"
+  username               = element(split("/", data.aws_caller_identity.current.arn), length(split("/", data.aws_caller_identity.current.arn)) - 1)
   common_tags = {
     Owner = local.username
   }
@@ -70,15 +70,39 @@ resource "local_file" "private_key_pem" {
 
 resource "null_resource" "download_certified_vhd" {
   count = var.certified_os_image ? 1 : 0
+
   provisioner "local-exec" {
     command = <<-EOT
-      set -e
-      if [ ! -f "${path.cwd}/${local.certified_image_name}" ]; then
-        echo "Downloading certified VHD..."
-        curl -L -o "${path.cwd}/${local.certified_image_name}" "${local.certified_image_url}"
-      else
-        echo "Certified VHD already exists, skipping download"
+      set -euo pipefail
+
+      FILE="${path.cwd}/${local.certified_image_name}"
+      EXPECTED="${local.certified_image_sha512}"
+
+      if [ -f "$FILE" ]; then
+        echo "File exists. Verifying checksum..."
+
+        if echo "$EXPECTED  $FILE" | sha512sum -c - >/dev/null 2>&1; then
+          echo "Checksum valid. Skipping download."
+          exit 0
+        else
+          echo "Checksum mismatch. Re-downloading..."
+          rm -f "$FILE"
+        fi
       fi
+
+      echo "Downloading + hashing in one pass..."
+
+      ACTUAL=$(curl -L --fail --retry 5 --retry-delay 5 "${local.certified_image_url}" \
+        | tee "$FILE" \
+        | sha512sum | awk '{print $1}')
+
+      if [ "$ACTUAL" != "$EXPECTED" ]; then
+        echo "ERROR: Checksum mismatch!"
+        rm -f "$FILE"
+        exit 1
+      fi
+
+      echo "Download + checksum verification successful."
     EOT
   }
 }
