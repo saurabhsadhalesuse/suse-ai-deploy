@@ -8,6 +8,7 @@ locals {
   ssh_username         = var.ssh_username
   certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.raw.tar.gz"
   certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
+  certified_image_sha512 = "6b43e8152f37f5697b052cb27377af40348ea1c28d6f764afea0147b23f329a6b790c4744216632a368362630adb34e4039ae67be2b13a92d30e53e43c5241ca" 
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -40,15 +41,39 @@ data "google_compute_image" "os_image" {
 
 resource "null_resource" "download_image" {
   count = var.certified_os_image ? 1 : 0
+
   provisioner "local-exec" {
     command = <<-EOT
-      set -e
-      if [ ! -f "${path.cwd}/${local.certified_image_name}" ]; then
-        echo "Downloading certified VHD..."
-        curl -L -o "${path.cwd}/${local.certified_image_name}" "${local.certified_image_url}"
-      else
-        echo "Certified VHD already exists, skipping download"
+      set -euo pipefail
+
+      FILE="${path.cwd}/${local.certified_image_name}"
+      EXPECTED="${local.certified_image_sha512}"
+
+      if [ -f "$FILE" ]; then
+        echo "File exists. Verifying checksum..."
+
+        if echo "$EXPECTED  $FILE" | sha512sum -c - >/dev/null 2>&1; then
+          echo "Checksum valid. Skipping download."
+          exit 0
+        else
+          echo "Checksum mismatch. Re-downloading..."
+          rm -f "$FILE"
+        fi
       fi
+
+      echo "Downloading + hashing in one pass..."
+
+      ACTUAL=$(curl -L --fail --retry 5 --retry-delay 5 "${local.certified_image_url}" \
+        | tee "$FILE" \
+        | sha512sum | awk '{print $1}')
+
+      if [ "$ACTUAL" != "$EXPECTED" ]; then
+        echo "ERROR: Checksum mismatch!"
+        rm -f "$FILE"
+        exit 1
+      fi
+
+      echo "Download + checksum verification successful."
     EOT
   }
 }

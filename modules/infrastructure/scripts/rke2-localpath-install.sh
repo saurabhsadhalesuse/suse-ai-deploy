@@ -5,6 +5,10 @@ set -e
 K8S_BIN="/var/lib/rancher/rke2/bin/kubectl"
 K8S_CONFIG="/etc/rancher/rke2/rke2.yaml"
 
+# Define Trusted Checksums:
+RKE2_INSTALL_SHA="49b21b3edd6f2ba87e732aeb6a709668302806efb55a060f64db9f680c97dfe096ecc9ec4f95ecaa30af46042c288c115c1d54b9566e4313b993e147b8c442d4"
+LOCAL_PATH_SHA="b7ad6b277a3fa2950fe86ecaf475db7bc5276b284a9fe662f56b10d182304f9e939ca92a823943560275586474c09d42cb6dfaeb51de3273ca7004c90127eaf8"
+
 echo "Starting RKE2 installation..."
 
 # 1. Create RKE2 directories
@@ -21,7 +25,10 @@ ingress-controller: traefik
 EOF
 
 # 3. Install RKE2
-curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_VERSION=${rke2_version} sh -
+echo "Downloading and verifying RKE2 installer..."
+curl -sfL -o install_rke2.sh https://get.rke2.io
+echo "$RKE2_INSTALL_SHA  install_rke2.sh" | sha512sum -c -
+sudo INSTALL_RKE2_VERSION=${rke2_version} sh install_rke2.sh
 
 # 4. Enable and Start Service
 sudo systemctl enable --now rke2-server
@@ -60,7 +67,12 @@ done
 
 # 6. Apply Local Path Provisioner
 echo "Applying Local Path Provisioner..."
+echo "Downloading and verifying Local Path Provisioner manifest..."
+LOCAL_PATH_URL="https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.31/deploy/local-path-storage.yaml"
+curl -sfL -o local-path-storage.yaml "$LOCAL_PATH_URL"
+echo "$LOCAL_PATH_SHA  local-path-storage.yaml" | sha512sum -c -
+
 # We use the absolute path to kubectl and point to the config explicitly
-sudo $K8S_BIN --kubeconfig $K8S_CONFIG apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.31/deploy/local-path-storage.yaml
+sudo $K8S_BIN --kubeconfig $K8S_CONFIG apply -f local-path-storage.yaml
 
 echo "RKE2 installation with localpath storage provisioner completed successfully."
