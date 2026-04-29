@@ -2,7 +2,7 @@
 
 Thanks for contributing to the project!
 
-Please review and follow the [Code of Conduct](https://github.com/devenkulkarni/suse-ai-tf/blob/main/CODE_OF_CONDUCT.md).
+Please review and follow the [Code of Conduct](https://github.com/rancher/suse-ai-deploy/blob/main/CODE_OF_CONDUCT.md).
 
 Contributing to the project is not limited to writing the code or submitting the PR. We will also appreciate if you can file issues, provide feedback and suggest new features.
 
@@ -23,21 +23,21 @@ The other exception to this single-commit rule is if your PR includes a change t
 - Clone or pull all changes.
 
 ```sh
-git clone  git@github.com:devenkulkarni/suse-ai-tf.git
+git clone  git@github.com:rancher/suse-ai-deploy.git
 
 OR
 
 git pull --all (if already cloned)
 ```
-**This step internally does: git remote add origin https://github.com/devenkulkarni/suse-ai-tf.git**
+**This step internally does: git remote add origin https://github.com/rancher/suse-ai-deploy.git**
 
-- Fork the project from [here](https://github.com/devenkulkarni/suse-ai-tf/fork).
+- Fork the project from [here](https://github.com/rancher/suse-ai-deploy/fork).
 
 ```sh
 cd <cloned directory path>
 git remote add mycopy <forked-url>
 ```
-**Example: git remote add mycopy git@github.com:<your_github_id>/suse-ai-tf.git**
+**Example: git remote add mycopy git@github.com:<your_github_id>/suse-ai-deploy.git**
 
 - Create your Feature Branch.
 
@@ -68,7 +68,7 @@ git commit -m "concise and meaningful commit messages about what is changing"
 ```sh
  git push mycopy <feature-branch-name>
 ```
-- Open a Pull Request(PR) providing any testing and change details from [here](https://github.com/devenkulkarni/suse-ai-tf/pulls).
+- Open a Pull Request(PR) providing any testing and change details from [here](https://github.com/rancher/suse-ai-deploy/pulls).
 
 - After the PR is merged, delete the branch `<feature-branch-name>`.
 
