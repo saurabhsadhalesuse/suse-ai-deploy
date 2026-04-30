@@ -95,13 +95,13 @@ variable "ip_cidr_range" {
 variable "rke2_version" {
   description = "The version of RKE2 to install"
   type        = string
-  default     = "v1.30.2+rke2r1"
+  default     = "v1.32.10+rke2r1"
 }
 
 variable "certified_os_image" {
   description = "Specifies whether to use the SUSE AI TF OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "certified_os_image_tag" {
