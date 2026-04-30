@@ -44,7 +44,7 @@ resource "null_resource" "download_image" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      set -euo pipefail
+      set -eu
 
       FILE="${path.cwd}/${local.certified_image_name}"
       EXPECTED="${local.certified_image_sha512}"
