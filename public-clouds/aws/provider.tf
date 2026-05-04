@@ -21,6 +21,10 @@ terraform {
       source  = "hashicorp/time"
       version = ">= 0.9.0"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.5"
+    }
   }
 }
 

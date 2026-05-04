@@ -114,3 +114,8 @@ variable "certified_os_image_tag" {
   }
 }
 
+variable "public_ip_source_addresses" {
+  description = "List of CIDRs allowed to reach port 22 (SSH). Defaults to the public IP of the machine running Terraform."
+  type        = list(string)
+  default     = []
+}

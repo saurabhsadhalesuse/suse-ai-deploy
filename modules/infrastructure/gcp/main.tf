@@ -127,7 +127,7 @@ resource "google_compute_firewall" "default" {
     protocol = "tcp"
     ports    = ["6443", "22", "80", "443"]
   }
-  source_ranges = ["0.0.0.0/0"]
+  source_ranges = var.public_ip_source_addresses
   target_tags   = ["${var.prefix}"]
 }
 

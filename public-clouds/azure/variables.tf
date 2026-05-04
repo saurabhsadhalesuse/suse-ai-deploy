@@ -168,3 +168,9 @@ variable "gpu_operator_ns" {
   description = "Namespace for the NVIDIA GPU operator"
   default     = "gpu-operator"
 }
+
+variable "public_ip_source_addresses" {
+  description = "List of CIDRs allowed to reach port 22 (SSH). Defaults to the public IP of the machine running Terraform."
+  type        = list(string)
+  default     = []
+}

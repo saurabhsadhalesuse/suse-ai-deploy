@@ -266,3 +266,9 @@ variable "certified_os_image_tag" {
     error_message = "Invalid value for certified_os_image_tag. Allowed values must match the format 'build-<number>'."
   }
 }
+
+variable "public_ip_source_addresses" {
+  description = "List of CIDRs allowed to reach port 22 (SSH). Defaults to the public IP of the machine running Terraform."
+  type        = list(string)
+  default     = []
+}
