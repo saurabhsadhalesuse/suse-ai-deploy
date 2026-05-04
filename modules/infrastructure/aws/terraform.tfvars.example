@@ -2,6 +2,3 @@ prefix       = "suse-ai-aws"
 rke2_version = "v1.32.10+rke2r1" # Check RKE2 releases at - https://github.com/rancher/rke2/releases
 region = "us-west-2"
 zone   = "us-west-2a"
-
-## -- Keep it true if using custom built opensuse image, false if using marketplace AMI
-certified_os_image = true

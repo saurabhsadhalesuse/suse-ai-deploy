@@ -2,15 +2,10 @@ locals {
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
   instance_count       = 1
-  instance_os_type     = "opensuse"
-  os_image_publisher   = "suse"
-  os_image_offer       = "opensuse-leap-15-6"
-  os_image_sku         = "gen1"
-  os_image_version     = "latest"
   certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
-  certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
+  certified_image_url  = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
   certified_image_sha512 = "5cdf863e0548498585e951e861adee67054fb7f762161cdbf6e469b9a63564aa256a53cb9f8009cac9aaf6c7467de938a9c2a3d3ea2c756aa99f295b487defc5"
-  ssh_username         = var.certified_os_image ? "opensuse" : "azureuser"
+  ssh_username         = "opensuse" 
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -32,7 +27,6 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_storage_account" "vhd" {
-  count                           = var.certified_os_image ? 1 : 0
   name                            = var.prefix
   resource_group_name             = azurerm_resource_group.rg.name
   location                        = azurerm_resource_group.rg.location
@@ -42,15 +36,12 @@ resource "azurerm_storage_account" "vhd" {
 }
 
 resource "azurerm_storage_container" "vhds" {
-  count                 = var.certified_os_image ? 1 : 0
   name                  = "vhds"
-  storage_account_id    = azurerm_storage_account.vhd[0].id
+  storage_account_id    = azurerm_storage_account.vhd.id
   container_access_type = "private"
 }
 
 resource "null_resource" "download_certified_vhd" {
-  count = var.certified_os_image ? 1 : 0
-
   provisioner "local-exec" {
     command = <<-EOT
       set -eu
@@ -89,21 +80,19 @@ resource "null_resource" "download_certified_vhd" {
 
 resource "azurerm_storage_blob" "suseaitf_vhd" {
   depends_on             = [null_resource.download_certified_vhd]
-  count                  = var.certified_os_image ? 1 : 0
   name                   = "suseaitfcloudcertified.vhd"
-  storage_account_name   = azurerm_storage_account.vhd[0].name
-  storage_container_name = azurerm_storage_container.vhds[0].name
+  storage_account_name   = azurerm_storage_account.vhd.name
+  storage_container_name = azurerm_storage_container.vhds.name
   type                   = "Page"
   source                 = "${path.cwd}/${local.certified_image_name}"
 }
 
 resource "null_resource" "wait_blob_accessible" {
-  count      = var.certified_os_image ? 1 : 0
   depends_on = [azurerm_storage_blob.suseaitf_vhd]
   provisioner "local-exec" {
     command = <<EOT
-      BLOB_URI=${azurerm_storage_blob.suseaitf_vhd[0].url}
-      ACCOUNT_KEY=$(az storage account keys list -g ${azurerm_resource_group.rg.name} -n ${azurerm_storage_account.vhd[0].name} --query '[0].value' -o tsv)
+      BLOB_URI=${azurerm_storage_blob.suseaitf_vhd.url}
+      ACCOUNT_KEY=$(az storage account keys list -g ${azurerm_resource_group.rg.name} -n ${azurerm_storage_account.vhd.name} --query '[0].value' -o tsv)
 
       for i in {1..20}; do
         az disk create --name temp-check-disk --resource-group ${azurerm_resource_group.rg.name} --source "$BLOB_URI" --location ${azurerm_resource_group.rg.location} --sku Standard_LRS > /dev/null 2>&1 && break || echo "Blob not ready, retry in 15s" && sleep 15
@@ -116,14 +105,13 @@ resource "null_resource" "wait_blob_accessible" {
 
 resource "azurerm_image" "suseaitf" {
   depends_on          = [null_resource.wait_blob_accessible]
-  count               = var.certified_os_image ? 1 : 0
   name                = "SUSEAITFCloudCertifiedImage"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   os_disk {
     os_type      = "Linux"
     os_state     = "Generalized"
-    blob_uri     = azurerm_storage_blob.suseaitf_vhd[0].url
+    blob_uri     = azurerm_storage_blob.suseaitf_vhd.url
     storage_type = "Standard_LRS"
   }
 }
@@ -240,7 +228,7 @@ resource "azurerm_linux_virtual_machine" "opensuse_gpu" {
     disk_size_gb         = var.os_disk_size
   }
 
-  source_image_id = var.certified_os_image ? azurerm_image.suseaitf[0].id : null
+  source_image_id = azurerm_image.suseaitf.id
 
   custom_data = base64encode(templatefile("${path.module}/../scripts/startupscript.tftpl", { cloud_provider = "azure" }))
 

@@ -9,17 +9,6 @@ aws configure
 # Verify identity
 aws sts get-caller-identity
 ```
-2. ⚠️ Mandatory AWS Marketplace Subscription
-This project uses the official openSUSE Leap AMI. Because this is a Marketplace image, you must manually accept the terms **once** per AWS Account or else you might get below error on execution of terraform apply:
-
-<img width="1713" height="195" alt="Screenshot 2026-02-19 at 3 30 12 PM" src="https://github.com/user-attachments/assets/734fe1ab-94ef-41b9-bf44-e87358d1f3a3" />
-
-2.1] Visit the [openSUSE Leap Marketplace Page](https://aws.amazon.com/marketplace/pp?sku=2p2b3a26fcee4q5r9tqxx9zrl).
-2.2] Ensure you are logged into your target AWS Account.
-2.3] Click **View Purchase Options/Continue to Subscribe** and **Accept Terms**. 
-
-<img width="627" height="1047" alt="image" src="https://github.com/user-attachments/assets/c62ff437-1234-4b34-a956-02dc6a5656ad" />
-
 
 ## Running the Terraform Code
 

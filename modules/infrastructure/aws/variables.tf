@@ -98,12 +98,6 @@ variable "rke2_version" {
   default     = "v1.32.10+rke2r1"
 }
 
-variable "certified_os_image" {
-  description = "Specifies whether to use the SUSE AI TF OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'."
-  type        = bool
-  default     = true
-}
-
 variable "certified_os_image_tag" {
   description = "Specifies which GitHub release to use for the OpenSUSE image. Default is 'build-1'."
   type        = string
