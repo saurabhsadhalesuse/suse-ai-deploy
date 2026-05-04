@@ -1,6 +1,6 @@
 locals {
   kc_path              = "${path.cwd}/kubeconfig-rke2.yaml"
-  ssh_username         = var.certified_os_image ? "opensuse" : "ec2-user"
+  ssh_username         = "opensuse"
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
 }
 
@@ -33,7 +33,6 @@ module "infrastructure" {
   subnet_id            = var.subnet_id
   ip_cidr_range        = var.ip_cidr_range
   rke2_version         = var.rke2_version
-  certified_os_image   = var.certified_os_image
 }
 
 resource "null_resource" "wait_for_k8s_api" {
