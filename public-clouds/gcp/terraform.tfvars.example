@@ -58,5 +58,3 @@ rancher_secret_key = ""
 ## -- Specifies whether to allow insecure connections to the Rancher API.
 rancher_insecure = false
 
-## Specifies whether to use the OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'.
-certified_os_image = true

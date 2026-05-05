@@ -7,9 +7,9 @@ locals {
   target_subnet_id       = var.use_existing_vpc ? var.subnet_id : aws_subnet.default_subnet[0].id
   host                   = var.associate_public_ip ? aws_instance.opensuse_gpu[0].public_ip : aws_instance.opensuse_gpu[0].private_ip
   instance_count         = 1
-  ssh_username           = var.certified_os_image ? "opensuse" : "ec2-user"
+  ssh_username           = "opensuse"
   certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
-  certified_image_url    = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
+  certified_image_url    = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
   certified_image_sha512 = "5cdf863e0548498585e951e861adee67054fb7f762161cdbf6e469b9a63564aa256a53cb9f8009cac9aaf6c7467de938a9c2a3d3ea2c756aa99f295b487defc5"
   username               = element(split("/", data.aws_caller_identity.current.arn), length(split("/", data.aws_caller_identity.current.arn)) - 1)
   common_tags = {
@@ -69,11 +69,9 @@ resource "local_file" "private_key_pem" {
 # Code for downloading the custom build OS image:
 
 resource "null_resource" "download_certified_vhd" {
-  count = var.certified_os_image ? 1 : 0
-
   provisioner "local-exec" {
     command = <<-EOT
-      set -euo pipefail
+      set -eu
 
       FILE="${path.cwd}/${local.certified_image_name}"
       EXPECTED="${local.certified_image_sha512}"
@@ -110,7 +108,6 @@ resource "null_resource" "download_certified_vhd" {
 # Create a S3 Bucket to store the OS image:
 
 resource "aws_s3_bucket" "images" {
-  count  = var.certified_os_image ? 1 : 0
   bucket = "opensuse-vhd-${var.prefix}"
 
   tags = local.common_tags
@@ -119,16 +116,14 @@ resource "aws_s3_bucket" "images" {
 # Upload the OS image to the S3 Bucket:
 
 resource "aws_s3_object" "vhd" {
-  count      = var.certified_os_image ? 1 : 0
   depends_on = [null_resource.download_certified_vhd]
-  bucket     = aws_s3_bucket.images[0].id
+  bucket     = aws_s3_bucket.images.id
   key        = "opensuse-harv.vhd"
   source     = "${path.cwd}/${local.certified_image_name}"
 }
 
 # Create IAM role and Policy needed for S3 Bucket access:
 resource "aws_iam_role" "vmimport" {
-  count = var.certified_os_image ? 1 : 0
   name  = "vmimport"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -143,9 +138,8 @@ resource "aws_iam_role" "vmimport" {
 }
 
 resource "aws_iam_role_policy" "vmimport" {
-  count = var.certified_os_image ? 1 : 0
   name  = "vmimport"
-  role  = aws_iam_role.vmimport[0].id
+  role  = aws_iam_role.vmimport.id
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -157,8 +151,8 @@ resource "aws_iam_role_policy" "vmimport" {
           "s3:ListBucket"
         ],
         Resource = [
-          aws_s3_bucket.images[0].arn,
-          "${aws_s3_bucket.images[0].arn}/*"
+          aws_s3_bucket.images.arn,
+          "${aws_s3_bucket.images.arn}/*"
         ]
       },
       {
@@ -178,17 +172,16 @@ resource "aws_iam_role_policy" "vmimport" {
 # Create EBS snapshot to import image from S3 Bucket:
 
 resource "aws_ebs_snapshot_import" "opensuse_snapshot" {
-  count       = var.certified_os_image ? 1 : 0
   description = "Opensuse Cerfied Image for SUSE AI TF"
-  role_name   = aws_iam_role.vmimport[0].name
+  role_name   = aws_iam_role.vmimport.name
   lifecycle {
     ignore_changes = [description]
   }
   disk_container {
     format = "VHD"
     user_bucket {
-      s3_bucket = aws_s3_bucket.images[0].id
-      s3_key    = aws_s3_object.vhd[0].key
+      s3_bucket = aws_s3_bucket.images.id
+      s3_key    = aws_s3_object.vhd.key
     }
   }
   depends_on = [aws_s3_object.vhd]
@@ -197,14 +190,13 @@ resource "aws_ebs_snapshot_import" "opensuse_snapshot" {
 # Code to add/register AMI using the custom build OS image
 
 resource "aws_ami" "opensuse_ami" {
-  count               = var.certified_os_image ? 1 : 0
   name                = "opensuse-suse-ai-tf-ami"
   virtualization_type = "hvm"
   root_device_name    = "/dev/xvda"
   ena_support         = true
   ebs_block_device {
     device_name = "/dev/xvda"
-    snapshot_id = aws_ebs_snapshot_import.opensuse_snapshot[0].id
+    snapshot_id = aws_ebs_snapshot_import.opensuse_snapshot.id
     volume_size = 2
     volume_type = "gp3"
   }
@@ -317,8 +309,7 @@ resource "aws_security_group" "default" {
 
 resource "aws_instance" "opensuse_gpu" {
   count = local.instance_count
-  # ami           = data.aws_ami.opensuse_leap.id
-  ami           = var.certified_os_image ? aws_ami.opensuse_ami[0].id : data.aws_ami.opensuse_leap[0].id
+  ami           = aws_ami.opensuse_ami.id
   instance_type = var.instance_type
 
   key_name                    = var.create_ssh_key_pair ? aws_key_pair.generated_key[0].key_name : var.existing_key_name
@@ -426,7 +417,6 @@ resource "null_resource" "retrieve_kubeconfig" {
 
 #resource "null_resource" "cleanup_certified_vhd" {
 #  depends_on = [null_resource.retrieve_kubeconfig]
-#  count      = var.certified_os_image ? 1 : 0
 #  provisioner "local-exec" {
 #    when    = destroy
 #    command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"

@@ -80,12 +80,6 @@ variable "subscription_id" {
   type        = string
 }
 
-variable "certified_os_image" {
-  description = "Specifies whether to use the SUSE AI TF custom build OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'."
-  type        = bool
-  default     = false
-}
-
 variable "certified_os_image_tag" {
   description = "Specifies which GitHub release to use for the SUSE AI TF Custom build OpenSUSE image. Default is 'build-11'."
   type        = string

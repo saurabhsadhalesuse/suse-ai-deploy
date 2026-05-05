@@ -2,12 +2,9 @@ locals {
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
   instance_count       = 1
-  instance_os_type     = "opensuse"
-  os_image_family      = "opensuse-leap"
-  os_image_project     = "opensuse-cloud"
-  ssh_username         = var.ssh_username
+  ssh_username         = "opensuse"
   certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.raw.tar.gz"
-  certified_image_url  = var.certified_os_image ? "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
+  certified_image_url  = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
   certified_image_sha512 = "6b43e8152f37f5697b052cb27377af40348ea1c28d6f764afea0147b23f329a6b790c4744216632a368362630adb34e4039ae67be2b13a92d30e53e43c5241ca" 
 }
 
@@ -30,21 +27,10 @@ resource "local_file" "public_key_pem" {
   file_permission = "0600"
 }
 
-data "google_compute_image" "os_image" {
-  count = var.certified_os_image ? 0 : 1
-
-  family  = local.os_image_family
-  project = local.os_image_project
-
-  most_recent = true
-}
-
 resource "null_resource" "download_image" {
-  count = var.certified_os_image ? 1 : 0
-
   provisioner "local-exec" {
     command = <<-EOT
-      set -euo pipefail
+      set -eu
 
       FILE="${path.cwd}/${local.certified_image_name}"
       EXPECTED="${local.certified_image_sha512}"
@@ -79,7 +65,6 @@ resource "null_resource" "download_image" {
 }
 
 resource "google_storage_bucket" "images_bucket" {
-  count         = var.certified_os_image ? 1 : 0
   name          = "${var.prefix}-certified-img-bucket"
   location      = var.region
   force_destroy = true
@@ -87,18 +72,16 @@ resource "google_storage_bucket" "images_bucket" {
 
 resource "google_storage_bucket_object" "certified_image" {
   depends_on = [null_resource.download_image]
-  count      = var.certified_os_image ? 1 : 0
   name       = "${var.prefix}-image-raw.tar.gz"
-  bucket     = google_storage_bucket.images_bucket[0].name
+  bucket     = google_storage_bucket.images_bucket.name
   source     = "${path.cwd}/${local.certified_image_name}"
 }
 
 resource "google_compute_image" "upload_certified_image" {
   depends_on = [google_storage_bucket_object.certified_image]
-  count      = var.certified_os_image ? 1 : 0
   name       = "${var.prefix}-opensuse-certified-img"
   raw_disk {
-    source = "https://storage.googleapis.com/${google_storage_bucket.images_bucket[0].name}/${google_storage_bucket_object.certified_image[0].name}"
+    source = "https://storage.googleapis.com/${google_storage_bucket.images_bucket.name}/${google_storage_bucket_object.certified_image.name}"
   }
 }
 
@@ -168,8 +151,7 @@ resource "google_compute_instance" "default" {
     initialize_params {
       type = var.os_disk_type
       size = var.os_disk_size
-      # image = data.google_compute_image.os_image.self_link
-      image = var.certified_os_image ? google_compute_image.upload_certified_image[0].self_link : data.google_compute_image.os_image[0].self_link
+      image = google_compute_image.upload_certified_image.self_link
     }
   }
   # Add GPU here:
@@ -301,7 +283,6 @@ resource "null_resource" "retrieve_kubeconfig" {
 
 #resource "null_resource" "cleanup_certified_raw" {
 #  depends_on = [null_resource.retrieve_kubeconfig]
-#  count      = var.certified_os_image ? 1 : 0
 #  provisioner "local-exec" {
 #    when    = destroy
 #    command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.raw.tar.gz"

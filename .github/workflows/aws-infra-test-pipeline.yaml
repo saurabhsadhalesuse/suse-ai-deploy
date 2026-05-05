@@ -1,0 +1,72 @@
+name: Test AWS VM deploy and destroy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write 
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  TF_VERSION: "1.10.5"
+  TF_WORKING_DIR: tests/aws/infra-only
+
+jobs:
+  aws_vm_terraform_deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::038462746716:role/ghaction-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Get public IP from Terraform output
+        id: ip
+        run: |
+          ip=$(terraform output -json instance_public_ip | jq -r '.')
+          echo "INSTANCE_IP=$ip" >> $GITHUB_ENV
+
+      - name: Wait for SSH (port 22)
+        run: |
+          echo "Waiting for port 22 on $INSTANCE_IP..."
+          for i in {1..30}; do
+            if nc -zv $INSTANCE_IP 22; then
+              echo "Port 22 is open."
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "SSH not available after retries. Failing."
+          exit 1
+        env:
+          INSTANCE_IP: ${{ env.INSTANCE_IP }}
+
+      - name: Terraform Destroy
+        if: always()
+        run: terraform destroy -auto-approve

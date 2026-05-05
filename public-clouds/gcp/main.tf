@@ -3,7 +3,7 @@ data "http" "my_public_ip_address" {
 }
 locals {
   kc_path              = "${path.cwd}/kubeconfig-rke2.yaml"
-  ssh_username         = var.ssh_username
+  ssh_username         = "opensuse"
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   caller_ip_cidr       = "${chomp(data.http.my_public_ip_address.response_body)}/32"
 }
@@ -37,7 +37,6 @@ module "infrastructure" {
   ssh_public_key_path        = var.ssh_public_key_path
   ip_cidr_range              = var.ip_cidr_range
   rke2_version               = var.rke2_version
-  certified_os_image         = var.certified_os_image
   public_ip_source_addresses = length(var.public_ip_source_addresses) > 0 ? var.public_ip_source_addresses : [local.caller_ip_cidr]
 
 }
