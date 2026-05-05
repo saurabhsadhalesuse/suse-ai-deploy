@@ -108,9 +108,24 @@ resource "google_compute_firewall" "default" {
   }
   allow {
     protocol = "tcp"
-    ports    = ["6443", "22", "80", "443"]
+    ports    = ["6443", "22"]
   }
   source_ranges = var.public_ip_source_addresses
+  target_tags   = ["${var.prefix}"]
+}
+
+resource "google_compute_firewall" "default" {
+  count   = var.create_firewall ? 1 : 0
+  name    = "${var.prefix}-firewall"
+  network = var.vpc == null ? resource.google_compute_network.vpc[0].name : var.vpc
+  allow {
+    protocol = "icmp"
+  }
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443"]
+  }
+  source_ranges = ["0.0.0.0/0"]
   target_tags   = ["${var.prefix}"]
 }
 
