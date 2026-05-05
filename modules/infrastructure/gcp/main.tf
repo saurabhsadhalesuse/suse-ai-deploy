@@ -1,11 +1,11 @@
 locals {
-  private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
-  public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
-  instance_count       = 1
-  ssh_username         = "opensuse"
-  certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.raw.tar.gz"
-  certified_image_url  = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
-  certified_image_sha512 = "6b43e8152f37f5697b052cb27377af40348ea1c28d6f764afea0147b23f329a6b790c4744216632a368362630adb34e4039ae67be2b13a92d30e53e43c5241ca" 
+  private_ssh_key_path   = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
+  public_ssh_key_path    = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
+  instance_count         = 1
+  ssh_username           = "opensuse"
+  certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.raw.tar.gz"
+  certified_image_url    = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
+  certified_image_sha512 = "6b43e8152f37f5697b052cb27377af40348ea1c28d6f764afea0147b23f329a6b790c4744216632a368362630adb34e4039ae67be2b13a92d30e53e43c5241ca"
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -99,7 +99,7 @@ resource "google_compute_subnetwork" "subnet" {
   ip_cidr_range = var.ip_cidr_range
 }
 
-resource "google_compute_firewall" "default" {
+resource "google_compute_firewall" "firewall_22_6443" {
   count   = var.create_firewall ? 1 : 0
   name    = "${var.prefix}-firewall"
   network = var.vpc == null ? resource.google_compute_network.vpc[0].name : var.vpc
@@ -164,8 +164,8 @@ resource "google_compute_instance" "default" {
   }
   boot_disk {
     initialize_params {
-      type = var.os_disk_type
-      size = var.os_disk_size
+      type  = var.os_disk_type
+      size  = var.os_disk_size
       image = google_compute_image.upload_certified_image.self_link
     }
   }
