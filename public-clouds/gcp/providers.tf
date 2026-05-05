@@ -15,6 +15,10 @@ terraform {
       source  = "rancher/rancher2"
       version = "13.1.4"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.5"
+    }
   }
 }
 

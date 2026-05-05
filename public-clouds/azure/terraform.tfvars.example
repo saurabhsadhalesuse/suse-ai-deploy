@@ -59,3 +59,5 @@ gpu_operator_ns = "gpu-operator"
 ## -- Specifies whether to allow insecure connections to the Rancher API.
 #rancher_insecure = false
 
+## -- Specifies a list of CIDR blocks allowed to access port 22 (SSH).
+public_ip_source_addresses = []

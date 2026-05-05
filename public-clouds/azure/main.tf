@@ -1,7 +1,12 @@
+data "http" "my_public_ip_address" {
+  url = "https://ipv4.icanhazip.com/"
+}
+
 locals {
   kc_path              = "${path.cwd}/kubeconfig-rke2.yaml"
   ssh_username         = "opensuse"
   private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
+  caller_ip_cidr       = "${chomp(data.http.my_public_ip_address.response_body)}/32"
 }
 
 # Placeholder to satisfy provider init:
@@ -19,19 +24,20 @@ resource "local_file" "kubeconfig_placeholder" {
 module "infrastructure" {
   source = "../../modules/infrastructure/azure"
 
-  prefix               = var.prefix
-  location             = var.location
-  zone                 = var.zone
-  instance_type        = var.instance_type
-  os_disk_size         = var.os_disk_size
-  create_ssh_key_pair  = var.create_ssh_key_pair
-  ssh_private_key_path = var.ssh_private_key_path
-  ssh_public_key_path  = var.ssh_public_key_path
-  existing_key_name    = var.existing_key_name
-  vnet_id              = var.vnet_id
-  subnet_id            = var.subnet_id
-  subscription_id      = var.subscription_id
-  rke2_version         = var.rke2_version
+  prefix                     = var.prefix
+  location                   = var.location
+  zone                       = var.zone
+  instance_type              = var.instance_type
+  os_disk_size               = var.os_disk_size
+  create_ssh_key_pair        = var.create_ssh_key_pair
+  ssh_private_key_path       = var.ssh_private_key_path
+  ssh_public_key_path        = var.ssh_public_key_path
+  existing_key_name          = var.existing_key_name
+  vnet_id                    = var.vnet_id
+  subnet_id                  = var.subnet_id
+  subscription_id            = var.subscription_id
+  rke2_version               = var.rke2_version
+  public_ip_source_addresses = length(var.public_ip_source_addresses) > 0 ? var.public_ip_source_addresses : [local.caller_ip_cidr]
 }
 
 resource "null_resource" "wait_for_k8s_api" {
