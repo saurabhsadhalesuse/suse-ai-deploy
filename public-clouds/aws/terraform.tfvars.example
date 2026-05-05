@@ -62,3 +62,6 @@ vpc_id = ""  # add vpc_id only if setting use_existing_vpc = true
 
 ## -- Existing SUBNET ID
 subnet_id = "" # add subnet_id only if setting use_existing_vpc = true
+
+## -- Specifies a list of CIDR blocks allowed to access port 22 (SSH).
+public_ip_source_addresses = []
