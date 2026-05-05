@@ -101,7 +101,7 @@ resource "google_compute_subnetwork" "subnet" {
 
 resource "google_compute_firewall" "firewall_22_6443" {
   count   = var.create_firewall ? 1 : 0
-  name    = "${var.prefix}-firewall"
+  name    = "${var.prefix}-firewall-22-6443"
   network = var.vpc == null ? resource.google_compute_network.vpc[0].name : var.vpc
   allow {
     protocol = "icmp"
