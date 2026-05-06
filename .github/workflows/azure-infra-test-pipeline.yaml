@@ -1,0 +1,65 @@
+name: Test Azure VM deploy and destroy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write 
+  contents: read
+
+env:
+  TF_VERSION: "1.10.5"
+  TF_WORKING_DIR: tests/azure/infra-only
+  # Subscription ID remains the primary variable
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  azure_vm_terraform_deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          # You can hardcode these if you don't want them in GitHub Secrets, 
+          # but they are still required for the login step to function.
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -var "subscription_id=$AZURE_SUBSCRIPTION_ID" -auto-approve
+
+      - name: Get public IP
+        run: |
+          ip=$(terraform output -raw public_ip)
+          echo "INSTANCE_IP=$ip" >> $GITHUB_ENV
+
+      - name: Wait for SSH
+        run: |
+          echo "Checking $INSTANCE_IP..."
+          for i in {1..30}; do
+            nc -zv $INSTANCE_IP 22 && exit 0
+            sleep 10
+          done
+          exit 1
+        env:
+          INSTANCE_IP: ${{ env.INSTANCE_IP }}
+
+      - name: Terraform Destroy
+        if: always()
+        run: terraform destroy -auto-approve
