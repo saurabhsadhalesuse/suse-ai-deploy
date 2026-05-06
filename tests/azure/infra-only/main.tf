@@ -1,8 +1,8 @@
 locals {
-  location               = "West US 2"
+  location             = "West US 2"
   ssh_private_key_path = "${path.cwd}/${var.prefix}-ssh_private_key.pem"
   ssh_public_key_path  = "${path.cwd}/${var.prefix}-ssh_public_key.pem"
-  instance_type        = "g4dn.xlarge"
+  instance_type        = "Standard_NC4as_T4_v3"
 }
 
 module "azure_infrastructure" {
