@@ -1,11 +1,11 @@
 locals {
-  private_ssh_key_path = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
-  public_ssh_key_path  = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
-  instance_count       = 1
-  certified_image_name = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
-  certified_image_url  = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
+  private_ssh_key_path   = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
+  public_ssh_key_path    = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
+  instance_count         = 1
+  certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
+  certified_image_url    = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
   certified_image_sha512 = "5cdf863e0548498585e951e861adee67054fb7f762161cdbf6e469b9a63564aa256a53cb9f8009cac9aaf6c7467de938a9c2a3d3ea2c756aa99f295b487defc5"
-  ssh_username         = "opensuse" 
+  ssh_username           = "opensuse"
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -153,7 +153,7 @@ resource "azurerm_network_security_group" "nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefixes      = var.public_ip_source_addresses
+    source_address_prefixes    = var.public_ip_source_addresses
     destination_address_prefix = "*"
   }
 
@@ -165,7 +165,7 @@ resource "azurerm_network_security_group" "nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "6443"
-    source_address_prefixes      = var.public_ip_source_addresses
+    source_address_prefixes    = var.public_ip_source_addresses
     destination_address_prefix = "*"
   }
 
