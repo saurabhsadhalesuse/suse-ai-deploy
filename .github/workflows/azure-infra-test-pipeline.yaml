@@ -55,7 +55,7 @@ jobs:
 
       - name: Get public IP
         run: |
-          ip=$(terraform output -raw public_ip)
+          ip=$(terraform output -json instance_public_ip | jq -r '.')
           echo "INSTANCE_IP=$ip" >> $GITHUB_ENV
 
       - name: Wait for SSH
@@ -71,4 +71,4 @@ jobs:
 
       - name: Terraform Destroy
         if: always()
-        run: terraform destroy -var "subscription_id=$AZURE_SUBSCRIPTION_ID" -auto-approve
+        run: terraform destroy -var "subscription_id=$AZURE_SUBSCRIPTION_ID" -var "public_ip_source_addresses=[\"$RUNNER_IP/32\"]" -auto-approve
