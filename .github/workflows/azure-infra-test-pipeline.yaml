@@ -71,4 +71,4 @@ jobs:
 
       - name: Terraform Destroy
         if: always()
-        run: terraform destroy -auto-approve
+        run: terraform destroy -var "subscription_id=$AZURE_SUBSCRIPTION_ID" auto-approve
