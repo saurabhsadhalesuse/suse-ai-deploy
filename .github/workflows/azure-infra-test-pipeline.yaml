@@ -10,8 +10,9 @@ permissions:
 env:
   TF_VERSION: "1.10.5"
   TF_WORKING_DIR: tests/azure/infra-only
-  # Subscription ID remains the primary variable
   AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
 jobs:
   azure_vm_terraform_deploy:
@@ -32,14 +33,14 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
-          # You can hardcode these if you don't want them in GitHub Secrets, 
-          # but they are still required for the login step to function.
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -upgrade
 
       - name: Terraform Apply
         run: terraform apply -var "subscription_id=$AZURE_SUBSCRIPTION_ID" -auto-approve
