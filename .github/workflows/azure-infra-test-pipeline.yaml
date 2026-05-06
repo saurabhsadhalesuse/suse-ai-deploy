@@ -38,6 +38,13 @@ jobs:
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
           client-id: ${{ env.AZURE_CLIENT_ID }}
           tenant-id: ${{ env.AZURE_TENANT_ID }}
+      
+      - name: Debug Subscription Access
+        run: |
+          echo "Listing all accessible subscriptions:"
+          az account list --output table
+          echo "Current context:"
+          az account show
 
       - name: Terraform Init
         run: terraform init -upgrade
