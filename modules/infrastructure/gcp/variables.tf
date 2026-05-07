@@ -181,7 +181,7 @@ variable "zone" {
 variable "rke2_version" {
   description = "The version of RKE2 to install"
   type        = string
-  default     = "null"
+  default     = "v1.32.10+rke2r1"
 }
 
 variable "certified_os_image_tag" {
