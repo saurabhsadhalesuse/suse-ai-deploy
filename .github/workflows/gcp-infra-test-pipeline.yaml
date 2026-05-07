@@ -1,0 +1,73 @@
+name: Test GCP VM deploy and destroy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write 
+  contents: read
+
+env:
+  TF_VERSION: "1.10.5"
+  TF_WORKING_DIR: tests/gcp/infra-only
+  WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+  SERVICE_ACCOUNT: ${{ secrets.SERVICE_ACCOUNT }}
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+
+jobs:
+  gcp_vm_terraform_deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: GCP Login
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+      
+      - name: Get GitHub Runner Public IP
+        id: get_ip
+        run: |
+          # Fetch the public IP of the runner
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+          echo "Detected Runner IP: $RUNNER_IP"
+
+      - name: Terraform Init
+        run: terraform init -upgrade
+
+      - name: Terraform Apply
+        run: terraform apply -var "project_id=$PROJECT_ID" -var "public_ip_source_addresses=[\"$RUNNER_IP/32\"]"  -auto-approve
+
+      - name: Get public IP
+        run: |
+          ip=$(terraform output -json instance_public_ip | jq -r '.')
+          echo "INSTANCE_IP=$ip" >> $GITHUB_ENV
+
+      - name: Wait for SSH
+        run: |
+          echo "Checking $INSTANCE_IP..."
+          for i in {1..30}; do
+            nc -zv $INSTANCE_IP 22 && exit 0
+            sleep 10
+          done
+          exit 1
+        env:
+          INSTANCE_IP: ${{ env.INSTANCE_IP }}
+
+      - name: Terraform Destroy
+        if: always()
+        run: terraform destroy -var "project_id=$PROJECT_ID" -var "public_ip_source_addresses=[\"$RUNNER_IP/32\"]" -auto-approve
