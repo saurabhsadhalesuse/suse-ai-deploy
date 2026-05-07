@@ -72,7 +72,7 @@ variable "subnet_id" {
 variable "rke2_version" {
   description = "The version of RKE2 to install"
   type        = string
-  default     = "v1.30.2+rke2r1"
+  default     = "v1.32.10+rke2r1"
 }
 
 variable "subscription_id" {
