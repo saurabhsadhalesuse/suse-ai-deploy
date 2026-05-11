@@ -1,3 +1,99 @@
+## Add longhorn charts
+resource "helm_release" "longhorn" {
+  name             = "longhorn"
+  repository       = "https://charts.longhorn.io"
+  chart            = "longhorn"
+  namespace        = "longhorn-system"
+  create_namespace = true
+  version          = var.longhorn_chart_version
+
+  set = [{
+    name  = "persistence.defaultClass"
+    value = "false"
+    },
+    {
+      name  = "defaultSettings.storageMinimalAvailablePercentage"
+      value = "10"
+    },
+    {
+      name  = "defaultSettings.storageReservedPercentageForDefaultDisk"
+      value = "10"
+    }
+  ]
+
+  # This ensures Helm waits for all pods to be ready
+  wait = true
+}
+
+# This resource handles the data loss safety lock before Longhorn is uninstalled
+resource "null_resource" "longhorn_uninstaller_patch" {
+  # Merge all data into ONE triggers block. 
+  # This saves these values into the .tfstate file so they are available at destroy time.
+  triggers = {
+    helm_release_id = helm_release.longhorn.id
+    ssh_user        = var.ssh_username
+    ssh_key         = var.ssh_private_key_content
+    ssh_host        = var.instance_public_ip
+  }
+
+  provisioner "remote-exec" {
+    when = destroy
+    inline = [
+      "echo 'Enabling deletingConfirmationFlag in Longhorn...'",
+      "sudo /var/lib/rancher/rke2/bin/kubectl patch settings.longhorn.io deleting-confirmation-flag -n longhorn-system --type=merge -p '{\"value\":\"true\"}' --kubeconfig /etc/rancher/rke2/rke2.yaml || echo 'Setting already patched or unavailable'"
+    ]
+
+    connection {
+      type = "ssh"
+      # We reference 'self.triggers' because 'var.xyz' is not accessible during destroy
+      user        = self.triggers.ssh_user
+      private_key = self.triggers.ssh_key
+      host        = self.triggers.ssh_host
+    }
+  }
+
+  lifecycle {
+    # This prevents Terraform from trying to re-run or recreate this 
+    # resource if your IP or variables change slightly during an update.
+    ignore_changes = all
+  }
+}
+
+resource "kubernetes_storage_class_v1" "longhorn_single_replica" {
+  metadata {
+    name = "longhorn-single-replica"
+  }
+
+  storage_provisioner    = "driver.longhorn.io"
+  reclaim_policy         = "Delete"
+  allow_volume_expansion = true
+
+  parameters = {
+    numberOfReplicas    = "1"
+    staleReplicaTimeout = "2880"
+  }
+
+  depends_on = [helm_release.longhorn]
+}
+
+resource "kubernetes_storage_class_v1" "longhorn_xfs_single_replica" {
+  metadata {
+    name = "longhorn-xfs-single-replica"
+  }
+
+  storage_provisioner    = "driver.longhorn.io"
+  reclaim_policy         = "Delete"
+  allow_volume_expansion = true
+
+  parameters = {
+    numberOfReplicas    = "1"
+    staleReplicaTimeout = "2880"
+    fsType              = "xfs"
+  }
+
+  depends_on = [helm_release.longhorn]
+}
+
 ## Add the namespace for deploying SUSE AI Stack:
 resource "kubernetes_namespace_v1" "suse_ai_ns" {
   depends_on = [null_resource.validate_kubernetes_connection]
@@ -329,17 +425,18 @@ EOF
 
 ## Adding SUSE-AI-DEPLOYER using helm to deploy SUSE AI components:
 resource "helm_release" "suse_ai_deployer" {
-  name             = "suse-ai"
+  name             = var.ha_setup ? "suse-ai-ha" : "suse-ai"
   namespace        = var.suse_ai_namespace
   repository       = "oci://${var.registry_name}/charts"
   chart            = "suse-ai-deployer"
   version          = var.deployer_chart_version
+  values = [
+    file("${path.module}/${var.ha_setup ? "custom_suseai_deployer_ha_setup_values.yaml" : "custom_suseai_deployer_values.yaml"}")
+  ]
   create_namespace = true
   wait             = false
   upgrade_install  = true
   depends_on       = [kubernetes_secret_v1.suse-appco-registry, null_resource.validate_kubernetes_connection, helm_release.cert_manager, helm_release.nvidia_gpu_operator, null_resource.suse_ai_gateway_init, null_resource.suse_ai_gateway_secure]
-
-  values = [file("${path.module}/custom_suseai_deployer_values.yaml")]
 
   set = [
     {
@@ -353,6 +450,7 @@ resource "helm_release" "suse_ai_deployer" {
   ]
 
 }
+
 
 ## 4. Create HTTPRoute for Open-WebUI
 resource "null_resource" "open_webui_httproute" {

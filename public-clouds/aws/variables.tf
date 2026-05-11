@@ -176,3 +176,10 @@ variable "public_ip_source_addresses" {
   type        = list(string)
   default     = []
 }
+
+variable "ha_setup" {
+  description = "Set to true for 3-node HA cluster"
+  type        = bool
+  default     = false
+}
+

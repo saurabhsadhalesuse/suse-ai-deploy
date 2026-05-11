@@ -1,12 +1,13 @@
 data "aws_caller_identity" "current" {}
 
 locals {
+  instance_count         = var.ha_setup ? 3 : 1
+  is_ha                  = var.ha_setup && local.instance_count == 3
   private_ssh_key_path   = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path    = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
   target_vpc_id          = var.use_existing_vpc ? var.vpc_id : aws_vpc.default_vpc[0].id
   target_subnet_id       = var.use_existing_vpc ? var.subnet_id : aws_subnet.default_subnet[0].id
   host                   = var.associate_public_ip ? aws_instance.opensuse_gpu[0].public_ip : aws_instance.opensuse_gpu[0].private_ip
-  instance_count         = 1
   ssh_username           = "opensuse"
   certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
   certified_image_url    = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
@@ -124,7 +125,7 @@ resource "aws_s3_object" "vhd" {
 
 # Create IAM role and Policy needed for S3 Bucket access:
 resource "aws_iam_role" "vmimport" {
-  name  = "vmimport"
+  name = "vmimport"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -138,8 +139,8 @@ resource "aws_iam_role" "vmimport" {
 }
 
 resource "aws_iam_role_policy" "vmimport" {
-  name  = "vmimport"
-  role  = aws_iam_role.vmimport.id
+  name = "vmimport"
+  role = aws_iam_role.vmimport.id
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -287,13 +288,120 @@ resource "aws_security_group" "default" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "kubelet Metrics"
+    from_port   = 10250
+    to_port     = 10250
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Kubernetes NodePorts"
+    from_port   = 30000
+    to_port     = 32767
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = merge(local.common_tags, { Name = "${var.prefix}-sg" })
 }
+
+# Only created when ha_setup = true - inter-node communication ports
+resource "aws_security_group" "ha" {
+  count       = local.is_ha ? 1 : 0
+  name        = "${var.prefix}-ha-sg"
+  description = "HA inter-node ports for RKE2"
+  vpc_id      = local.target_vpc_id
+
+  ingress {
+    description = "RKE2 node join"
+    from_port   = 9345
+    to_port     = 9345
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    self        = true
+  }
+
+  ingress {
+    description = "etcd client port"
+    from_port   = 2379
+    to_port     = 2379
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "etcd peer port"
+    from_port   = 2380
+    to_port     = 2380
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    self        = true
+  }
+
+  ingress {
+    description = "etcd metrics port"
+    from_port   = 2381
+    to_port     = 2381
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    self        = true
+  }
+
+  # Canal VXLAN - self only (inter-node)
+  ingress {
+    description = "Canal VXLAN overlay"
+    from_port   = 8472
+    to_port     = 8472
+    protocol    = "udp"
+    self        = true
+  }
+
+  # Canal health checks - self only
+  ingress {
+    description = "Canal health checks"
+    from_port   = 9099
+    to_port     = 9099
+    protocol    = "tcp"
+    self        = true
+  }
+
+  # WireGuard IPv4 - self only
+  ingress {
+    description = "Canal WireGuard IPv4"
+    from_port   = 51820
+    to_port     = 51820
+    protocol    = "udp"
+    self        = true
+  }
+
+  # WireGuard IPv6 - self only
+  ingress {
+    description = "Canal WireGuard IPv6"
+    from_port   = 51821
+    to_port     = 51821
+    protocol    = "udp"
+    self        = true
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, { Name = "${var.prefix}-ha-sg" })
+}
+
 
 #resource "aws_eip" "ec2_eip" {
 #  domain = "vpc"
@@ -308,12 +416,12 @@ resource "aws_security_group" "default" {
 #}
 
 resource "aws_instance" "opensuse_gpu" {
-  count = local.instance_count
+  count         = local.instance_count
   ami           = aws_ami.opensuse_ami.id
   instance_type = var.instance_type
 
   key_name                    = var.create_ssh_key_pair ? aws_key_pair.generated_key[0].key_name : var.existing_key_name
-  vpc_security_group_ids      = [aws_security_group.default.id]
+  vpc_security_group_ids      = local.is_ha ? [aws_security_group.default.id, aws_security_group.ha[0].id] : [aws_security_group.default.id]
   subnet_id                   = local.target_subnet_id
   associate_public_ip_address = var.associate_public_ip
 
@@ -325,10 +433,11 @@ resource "aws_instance" "opensuse_gpu" {
 
   user_data = templatefile("${path.module}/../scripts/startupscript.tftpl", { cloud_provider = "aws" })
 
-  tags = merge(local.common_tags, { Name = "${var.prefix}-opensuse-rke2" })
+  tags = merge(local.common_tags, { Name = "${var.prefix}-opensuse-rke2-${count.index + 1}" })
 }
 
 resource "null_resource" "wait_for_gpu" {
+  count      = local.instance_count
   depends_on = [aws_instance.opensuse_gpu]
 
   provisioner "remote-exec" {
@@ -336,7 +445,7 @@ resource "null_resource" "wait_for_gpu" {
       type        = "ssh"
       user        = local.ssh_username
       private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
-      host        = local.host
+      host        = var.associate_public_ip ? aws_instance.opensuse_gpu[count.index].public_ip : aws_instance.opensuse_gpu[count.index].private_ip
       timeout     = "15m"
     }
 
@@ -372,6 +481,78 @@ resource "null_resource" "rke2_installation" {
     }
   }
 }
+
+resource "null_resource" "join_additional_servers" {
+  count = local.is_ha ? local.instance_count - 1 : 0
+
+  depends_on = [
+    null_resource.rke2_installation,
+    null_resource.get_server_token
+  ]
+
+  provisioner "file" {
+    source      = "./rke2-token"
+    destination = "/tmp/rke2-token"
+
+    connection {
+      type        = "ssh"
+      host        = var.associate_public_ip ? aws_instance.opensuse_gpu[count.index + 1].public_ip : aws_instance.opensuse_gpu[count.index + 1].private_ip
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+    }
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      templatefile("${path.module}/../scripts/rke2-localpath-join-server-install.sh", {
+        public_ip    = aws_instance.opensuse_gpu[count.index + 1].public_ip
+        private_ip   = aws_instance.opensuse_gpu[0].private_ip
+        rke2_version = var.rke2_version
+      })
+    ]
+
+    connection {
+      type        = "ssh"
+      host        = var.associate_public_ip ? aws_instance.opensuse_gpu[count.index + 1].public_ip : aws_instance.opensuse_gpu[count.index + 1].private_ip
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+    }
+
+  }
+}
+
+resource "null_resource" "get_server_token" {
+
+  count      = local.is_ha ? 1 : 0
+  depends_on = [null_resource.rke2_installation]
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo cat /var/lib/rancher/rke2/server/node-token > /tmp/rke2-token"
+    ]
+
+    connection {
+      type        = "ssh"
+      host        = local.host
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+    }
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+scp -o StrictHostKeyChecking=no \
+-i ${local.private_ssh_key_path} \
+${local.ssh_username}@${local.host}:/tmp/rke2-token ./rke2-token
+EOT
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "rm -f ./rke2-token"
+  }
+}
+
 
 resource "null_resource" "retrieve_kubeconfig" {
   depends_on = [null_resource.rke2_installation]
