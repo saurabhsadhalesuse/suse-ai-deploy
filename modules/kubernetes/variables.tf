@@ -89,3 +89,9 @@ variable "ha_setup" {
   type        = bool
   default     = false
 }
+
+variable "longhorn_chart_version" {
+  type        = string
+  description = "Chart version for longhorn"
+  default     = "v1.9.2"
+}
