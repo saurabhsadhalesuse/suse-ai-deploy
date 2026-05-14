@@ -36,6 +36,14 @@ jobs:
           role-to-assume: arn:aws:iam::038462746716:role/ghaction-role
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Get GitHub Runner Public IP
+        id: get_ip
+        run: |
+          # Fetch the public IP of the runner
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+          echo "Detected Runner IP: $RUNNER_IP"
+
       - name: Verify AWS Identity
         run: aws sts get-caller-identity
 
