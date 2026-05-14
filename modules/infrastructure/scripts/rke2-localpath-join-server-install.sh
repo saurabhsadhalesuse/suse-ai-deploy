@@ -71,25 +71,13 @@ while true; do
     sleep 5
 done
 
-# 6. Apply Local Path Provisioner
-echo "Applying Local Path Provisioner..."
-echo "Downloading and verifying Local Path Provisioner manifest..."
-LOCAL_PATH_URL="https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.31/deploy/local-path-storage.yaml"
-curl -sfL -o local-path-storage.yaml "$LOCAL_PATH_URL"
-echo "$LOCAL_PATH_SHA  local-path-storage.yaml" | sha512sum -c -
-
-# We use the absolute path to kubectl and point to the config explicitly
-sudo $K8S_BIN --kubeconfig $K8S_CONFIG apply -f local-path-storage.yaml
-
-echo "RKE2 installation with localpath storage provisioner completed successfully."
-
-# 7. Install Longhorn pre-requisites:
+# 6. Install Longhorn pre-requisites:
 echo "Installing longhorn pre-requisites [nfs-client, iscsi, cryptsetup]"
 sudo zypper install -y nfs-client open-iscsi cryptsetup
 echo "Enabling and starting iscsid..."
 sudo systemctl enable --now iscsid
 
-# 8. Wait for Service to be Active
+# 7. Wait for Service to be Active
 TIMEOUT=600 # 10 minutes
 END_TIME=$(( $${SECONDS} + $${TIMEOUT} ))
 
