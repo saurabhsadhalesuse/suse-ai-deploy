@@ -16,13 +16,23 @@ locals {
   common_tags = {
     Owner = local.username
   }
+
+  ha_ingress_rules = local.is_ha ? [
+    { description = "RKE2 node join",       from_port = 9345,  to_port = 9345,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], self = true  },
+    { description = "etcd client port",     from_port = 2379,  to_port = 2379,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], self = false },
+    { description = "etcd peer port",       from_port = 2380,  to_port = 2380,  protocol = "tcp", cidr_blocks = [],             self = true  },
+    { description = "etcd metrics port",    from_port = 2381,  to_port = 2381,  protocol = "tcp", cidr_blocks = [],             self = true  },
+    { description = "Canal VXLAN overlay",  from_port = 8472,  to_port = 8472,  protocol = "udp", cidr_blocks = [],             self = true  },
+    { description = "Canal health checks",  from_port = 9099,  to_port = 9099,  protocol = "tcp", cidr_blocks = [],             self = true  },
+    { description = "Canal WireGuard IPv4", from_port = 51820, to_port = 51820, protocol = "udp", cidr_blocks = [],             self = true  },
+    { description = "Canal WireGuard IPv6", from_port = 51821, to_port = 51821, protocol = "udp", cidr_blocks = [],             self = true  },
+  ] : []
 }
 
 # 1. Create the IAM Role
 resource "aws_iam_role" "ssm_role" {
   name = "ssm-managed-instance-role"
 
-  # Trust policy allowing EC2 service to assume this role
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -67,8 +77,6 @@ resource "local_file" "private_key_pem" {
   file_permission = "0600"
 }
 
-# Code for downloading the custom build OS image:
-
 resource "null_resource" "download_certified_vhd" {
   provisioner "local-exec" {
     command = <<-EOT
@@ -106,15 +114,10 @@ resource "null_resource" "download_certified_vhd" {
   }
 }
 
-# Create a S3 Bucket to store the OS image:
-
 resource "aws_s3_bucket" "images" {
   bucket = "opensuse-vhd-${var.prefix}"
-
-  tags = local.common_tags
+  tags   = local.common_tags
 }
-
-# Upload the OS image to the S3 Bucket:
 
 resource "aws_s3_object" "vhd" {
   depends_on = [null_resource.download_certified_vhd]
@@ -123,7 +126,6 @@ resource "aws_s3_object" "vhd" {
   source     = "${path.cwd}/${local.certified_image_name}"
 }
 
-# Create IAM role and Policy needed for S3 Bucket access:
 resource "aws_iam_role" "vmimport" {
   name = "vmimport"
   assume_role_policy = jsonencode({
@@ -170,8 +172,6 @@ resource "aws_iam_role_policy" "vmimport" {
   })
 }
 
-# Create EBS snapshot to import image from S3 Bucket:
-
 resource "aws_ebs_snapshot_import" "opensuse_snapshot" {
   description = "Opensuse Cerfied Image for SUSE AI TF"
   role_name   = aws_iam_role.vmimport.name
@@ -187,8 +187,6 @@ resource "aws_ebs_snapshot_import" "opensuse_snapshot" {
   }
   depends_on = [aws_s3_object.vhd]
 }
-
-# Code to add/register AMI using the custom build OS image
 
 resource "aws_ami" "opensuse_ami" {
   name                = "opensuse-suse-ai-tf-ami"
@@ -210,16 +208,14 @@ resource "aws_vpc" "default_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-
-  tags = merge(local.common_tags, { Name = "${var.prefix}-vpc" })
+  tags                 = merge(local.common_tags, { Name = "${var.prefix}-vpc" })
 }
 
 # Internet Gateway
 resource "aws_internet_gateway" "default_igw" {
   count  = var.use_existing_vpc ? 0 : 1
   vpc_id = local.target_vpc_id
-
-  tags = merge(local.common_tags, { Name = "${var.prefix}-igw" })
+  tags   = merge(local.common_tags, { Name = "${var.prefix}-igw" })
 }
 
 # Route Table
@@ -252,10 +248,9 @@ resource "aws_route_table_association" "public_assoc" {
   route_table_id = aws_route_table.default_rt[0].id
 }
 
-
 resource "aws_security_group" "default" {
   name        = "${var.prefix}-sg"
-  description = "Allow RKE2 and SSH"
+  description = "Allow RKE2, SSH, and optional HA inter-node ports"
   vpc_id      = local.target_vpc_id
 
   ingress {
@@ -270,20 +265,6 @@ resource "aws_security_group" "default" {
     description = "RKE2 API"
     from_port   = 6443
     to_port     = 6443
-    protocol    = "tcp"
-    cidr_blocks = var.public_ip_source_addresses
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -304,6 +285,32 @@ resource "aws_security_group" "default" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  dynamic "ingress" {
+    for_each = local.ha_ingress_rules
+    content {
+      description = ingress.value.description
+      from_port   = ingress.value.from_port
+      to_port     = ingress.value.to_port
+      protocol    = ingress.value.protocol
+      cidr_blocks = ingress.value.cidr_blocks
+      self        = ingress.value.self
+    }
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -314,114 +321,13 @@ resource "aws_security_group" "default" {
   tags = merge(local.common_tags, { Name = "${var.prefix}-sg" })
 }
 
-# Only created when ha_setup = true - inter-node communication ports
-resource "aws_security_group" "ha" {
-  count       = local.is_ha ? 1 : 0
-  name        = "${var.prefix}-ha-sg"
-  description = "HA inter-node ports for RKE2"
-  vpc_id      = local.target_vpc_id
-
-  ingress {
-    description = "RKE2 node join"
-    from_port   = 9345
-    to_port     = 9345
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    self        = true
-  }
-
-  ingress {
-    description = "etcd client port"
-    from_port   = 2379
-    to_port     = 2379
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "etcd peer port"
-    from_port   = 2380
-    to_port     = 2380
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    self        = true
-  }
-
-  ingress {
-    description = "etcd metrics port"
-    from_port   = 2381
-    to_port     = 2381
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    self        = true
-  }
-
-  # Canal VXLAN - self only (inter-node)
-  ingress {
-    description = "Canal VXLAN overlay"
-    from_port   = 8472
-    to_port     = 8472
-    protocol    = "udp"
-    self        = true
-  }
-
-  # Canal health checks - self only
-  ingress {
-    description = "Canal health checks"
-    from_port   = 9099
-    to_port     = 9099
-    protocol    = "tcp"
-    self        = true
-  }
-
-  # WireGuard IPv4 - self only
-  ingress {
-    description = "Canal WireGuard IPv4"
-    from_port   = 51820
-    to_port     = 51820
-    protocol    = "udp"
-    self        = true
-  }
-
-  # WireGuard IPv6 - self only
-  ingress {
-    description = "Canal WireGuard IPv6"
-    from_port   = 51821
-    to_port     = 51821
-    protocol    = "udp"
-    self        = true
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(local.common_tags, { Name = "${var.prefix}-ha-sg" })
-}
-
-
-#resource "aws_eip" "ec2_eip" {
-#  domain = "vpc"
-#  tags = {
-#    Name = "${var.prefix}-eip"
-#  }
-#}
-
-#resource "aws_eip_association" "eip_assoc" {
-#  instance_id   = aws_instance.opensuse_gpu.id
-#  allocation_id = aws_eip.ec2_eip.id
-#}
-
 resource "aws_instance" "opensuse_gpu" {
   count         = local.instance_count
   ami           = aws_ami.opensuse_ami.id
   instance_type = var.instance_type
 
   key_name                    = var.create_ssh_key_pair ? aws_key_pair.generated_key[0].key_name : var.existing_key_name
-  vpc_security_group_ids      = local.is_ha ? [aws_security_group.default.id, aws_security_group.ha[0].id] : [aws_security_group.default.id]
+  vpc_security_group_ids      = [aws_security_group.default.id]
   subnet_id                   = local.target_subnet_id
   associate_public_ip_address = var.associate_public_ip
 
@@ -431,7 +337,10 @@ resource "aws_instance" "opensuse_gpu" {
   }
   iam_instance_profile = aws_iam_instance_profile.ssm_profile.name
 
-  user_data = templatefile("${path.module}/../scripts/startupscript.tftpl", { cloud_provider = "aws" })
+  user_data = templatefile("${path.module}/../scripts/startupscript.tftpl", {
+    cloud_provider = "aws"
+    hostname       = "${var.prefix}-rke2-${count.index + 1}"
+  })
 
   tags = merge(local.common_tags, { Name = "${var.prefix}-opensuse-rke2-${count.index + 1}" })
 }
@@ -451,8 +360,6 @@ resource "null_resource" "wait_for_gpu" {
 
     inline = [
       "echo 'Waiting for GPU Driver installation to complete...'",
-      # This loop waits for nvidia-smi to be available in the PATH
-      # timeout 600 ensures it doesn't loop forever (10 minutes max)
       "timeout 600 bash -c 'until command -v nvidia-smi &> /dev/null; do echo \"Still waiting for nvidia-smi...\"; sleep 20; done'",
       "echo 'GPU Driver detected!'",
       "nvidia-smi",
@@ -517,12 +424,10 @@ resource "null_resource" "join_additional_servers" {
       user        = local.ssh_username
       private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
     }
-
   }
 }
 
 resource "null_resource" "get_server_token" {
-
   count      = local.is_ha ? 1 : 0
   depends_on = [null_resource.rke2_installation]
 
@@ -552,7 +457,6 @@ EOT
     command = "rm -f ./rke2-token"
   }
 }
-
 
 resource "null_resource" "retrieve_kubeconfig" {
   depends_on = [null_resource.rke2_installation]
@@ -595,11 +499,3 @@ resource "null_resource" "retrieve_kubeconfig" {
     command = "rm -f ./kubeconfig-rke2.yaml"
   }
 }
-
-#resource "null_resource" "cleanup_certified_vhd" {
-#  depends_on = [null_resource.retrieve_kubeconfig]
-#  provisioner "local-exec" {
-#    when    = destroy
-#    command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
-#  }
-#}

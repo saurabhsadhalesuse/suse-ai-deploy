@@ -20,7 +20,7 @@ variable "instance_type" {
 
 variable "os_disk_size" {
   type    = number
-  default = 150
+  default = 500
 }
 
 variable "ssh_username" {

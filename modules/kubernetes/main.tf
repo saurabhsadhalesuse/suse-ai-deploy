@@ -18,6 +18,10 @@ resource "helm_release" "longhorn" {
     {
       name  = "defaultSettings.storageReservedPercentageForDefaultDisk"
       value = "10"
+    },
+    {
+      name  = "defaultSettings.replicaAutoBalance"
+      value = "best-effort"
     }
   ]
 
@@ -425,11 +429,11 @@ EOF
 
 ## Adding SUSE-AI-DEPLOYER using helm to deploy SUSE AI components:
 resource "helm_release" "suse_ai_deployer" {
-  name             = var.ha_setup ? "suse-ai-ha" : "suse-ai"
-  namespace        = var.suse_ai_namespace
-  repository       = "oci://${var.registry_name}/charts"
-  chart            = "suse-ai-deployer"
-  version          = var.deployer_chart_version
+  name       = var.ha_setup ? "suse-ai-ha" : "suse-ai"
+  namespace  = var.suse_ai_namespace
+  repository = "oci://${var.registry_name}/charts"
+  chart      = "suse-ai-deployer"
+  version    = var.deployer_chart_version
   values = [
     file("${path.module}/${var.ha_setup ? "custom_suseai_deployer_ha_setup_values.yaml" : "custom_suseai_deployer_values.yaml"}")
   ]
