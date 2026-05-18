@@ -71,42 +71,4 @@ while true; do
     sleep 5
 done
 
-# 6. Install Longhorn pre-requisites:
-echo "Installing longhorn pre-requisites [nfs-client, iscsi, cryptsetup]"
-sudo zypper install -y nfs-client open-iscsi cryptsetup
-echo "Enabling and starting iscsid..."
-sudo systemctl enable --now iscsid
-
-# 7. Wait for Service to be Active
-TIMEOUT=600 # 10 minutes
-END_TIME=$(( $${SECONDS} + $${TIMEOUT} ))
-
-echo "Waiting for iscsid to start (Timeout: $${TIMEOUT}s)..."
-
-while true; do
-    # 1. Check if the service is active (Success)
-    if sudo systemctl is-active --quiet iscsid; then
-        echo "Success: iscsid is active."
-        break
-    fi
-
-    # 2. Check if the service explicitly failed (Early Exit)
-    if sudo systemctl is-failed --quiet iscsid; then
-        echo "Error: iscsid service entered a FAILED state."
-        echo "--- Last 20 lines of logs ---"
-        sudo journalctl -u rke2-server --no-pager -n 20
-        exit 1
-    fi
-
-    # 3. Check for Timeout
-    if [ "$${SECONDS}" -ge "$${END_TIME}" ]; then
-        echo "Error: Timed out waiting for iscsid after $${TIMEOUT} seconds."
-        echo "--- Last 20 lines of logs ---"
-        sudo journalctl -u iscsid --no-pager -n 20
-        exit 1
-    fi
-
-    sleep 5
-done
-
 echo "RKE2 installation with Longhorn storage provisioner completed successfully for additional servers."
