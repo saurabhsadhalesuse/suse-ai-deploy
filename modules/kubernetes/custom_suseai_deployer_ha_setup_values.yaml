@@ -81,6 +81,7 @@ milvus:
     persistence:
       storageClassName: longhorn-single-replica
   minio:
+    replicas: 2
     enabled: true 
     mode: distributed
     rootUser: "admin"
@@ -99,7 +100,7 @@ milvus:
     enabled: true
     persistence:
       enabled: true
-      storageClassName: longhorn-single-replica
+      storageClassName: longhorn-xfs-single-replica
 pytorch:
   enabled: false
 vllm:
