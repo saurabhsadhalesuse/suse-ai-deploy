@@ -449,10 +449,9 @@ resource "helm_release" "suse_ai_deployer" {
     },
     {
       name  = "open-webui.extraEnvVars[7].value"
-      value = "http://suse-ai-milvus.${var.suse_ai_namespace}.svc.cluster.local:19530"
+      value = var.ha_setup ? "http://suse-ai-ha-milvus.${var.suse_ai_namespace}.svc.cluster.local:19530" : "http://suse-ai-milvus.${var.suse_ai_namespace}.svc.cluster.local:19530"
     }
   ]
-
 }
 
 
