@@ -3,7 +3,7 @@
 This module provisions a GPU-accelerated EC2 instance running **openSUSE Leap** and prepares it for the SUSE AI stack by installing NVIDIA drivers and RKE2.
 
 ## Features
-* Provisions **** instance types with NVIDIA GPUs.
+* Provisions **Standard_NC4as_T4_v3** instance types with NVIDIA GPUs.
 * Uses **openSUSE Leap 15.x** AMI.
 * Automated driver installation via `startupscript.tftpl`.
 * Configures Security Groups for SSH and Kubernetes API (6443).
@@ -33,7 +33,7 @@ module "azure_gpu_node" {
   source        = "../../modules/infrastructure/azure"
 
   prefix        = "suse-ai-dev"
-  instance_type = "g4dn.xlarge"   
+  instance_type = "Standard_NC4as_T4_v3"   
   vpc_id        = "vpc-12345"
   subnet_id     = "subnet-12345"
 
