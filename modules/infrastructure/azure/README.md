@@ -1,6 +1,6 @@
 # Azure Infrastructure Module for SUSE AI
 
-This module provisions a GPU-accelerated EC2 instance running **openSUSE Leap** and prepares it for the SUSE AI stack by installing NVIDIA drivers and RKE2.
+This module provisions a GPU-accelerated instance running **openSUSE Leap** and prepares it for the SUSE AI stack by installing NVIDIA drivers and RKE2.
 
 ## Features
 * Provisions **Standard_NC4as_T4_v3** instance types with NVIDIA GPUs.
