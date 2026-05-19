@@ -47,14 +47,16 @@ To tear down the infrastructure and avoid costs:
 terraform destroy
 ```
 
-## Accessing SUSE AI WebUI on browser:
-
-To access SUSE AI WebUi on your browser, you need to map the public IP of the instance to `suse-ollama-webui` host in `/etc/hosts`:
+## Accessing SUSE AI UI:
+Check out the output of `terraform output` and it should have the URL to the SUSE AI UI:
 
 ```bash
-vi /etc/hosts
+Outputs:
 
-<public-ip-of-instance>  suse-ollama-webui
+instance_public_ip = "172.10.10.123"
+kubeconfig_path = "/Users/devendrakulkarni/suse-ai/public-clouds/gcp/kubeconfig-rke2.yaml"
+ssh_command = "ssh -i /Users/devendrakulkarni/suse-ai/public-clouds/gcp/dksuseai-ssh_private_key.pem opensuse@172.10.10.112"
+suse_ai_webui_url = "suse-ai.172.10.10.123.sslip.io"
 ```
 
 
