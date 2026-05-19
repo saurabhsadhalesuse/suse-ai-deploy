@@ -20,7 +20,7 @@ variable "instance_type" {
 
 variable "os_disk_size" {
   type    = number
-  default = 150
+  default = 500
 }
 
 variable "ssh_username" {
@@ -176,3 +176,10 @@ variable "public_ip_source_addresses" {
   type        = list(string)
   default     = []
 }
+
+variable "ha_setup" {
+  description = "Set to true for 3-node HA cluster"
+  type        = bool
+  default     = false
+}
+

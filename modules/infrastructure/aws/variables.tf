@@ -25,7 +25,7 @@ variable "instance_type" {
 variable "os_disk_size" {
   description = "Size of the root OS disk in GB"
   type        = number
-  default     = 150
+  default     = 500
 }
 
 variable "create_ssh_key_pair" {
@@ -112,4 +112,10 @@ variable "public_ip_source_addresses" {
   description = "List of CIDRs allowed to reach port 22 (SSH). Defaults to the public IP of the machine running Terraform."
   type        = list(string)
   default     = []
+}
+
+variable "ha_setup" {
+  description = "Set to true for 3-node HA cluster"
+  type        = bool
+  default     = false
 }

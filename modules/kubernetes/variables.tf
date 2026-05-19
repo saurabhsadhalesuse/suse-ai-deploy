@@ -83,3 +83,15 @@ variable "deployer_chart_version" {
   description = "Chart version for the suse-ai-deployer helm chart"
   default     = "1.2.0"
 }
+
+variable "ha_setup" {
+  description = "Set to true for 3-node HA cluster"
+  type        = bool
+  default     = false
+}
+
+variable "longhorn_chart_version" {
+  type        = string
+  description = "Chart version for longhorn"
+  default     = "v1.11.1"
+}
