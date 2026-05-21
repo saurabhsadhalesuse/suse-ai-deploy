@@ -65,3 +65,6 @@ subnet_id = "" # add subnet_id only if setting use_existing_vpc = true
 
 ## -- Specifies a list of CIDR blocks allowed to access port 22 (SSH).
 public_ip_source_addresses = []
+
+# Set to true for 3-node HA cluster
+ha_setup = false
