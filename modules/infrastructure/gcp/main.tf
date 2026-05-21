@@ -1,11 +1,22 @@
 locals {
+  instance_count         = var.ha_setup ? 3 : 1
+  is_ha                  = var.ha_setup && local.instance_count == 3
   private_ssh_key_path   = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path    = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
-  instance_count         = 1
   ssh_username           = "opensuse"
   certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.raw.tar.gz"
   certified_image_url    = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
   certified_image_sha512 = "6b43e8152f37f5697b052cb27377af40348ea1c28d6f764afea0147b23f329a6b790c4744216632a368362630adb34e4039ae67be2b13a92d30e53e43c5241ca"
+  ha_ingress_rules = local.is_ha ? [
+    { description = "RKE2 node join", priority = 1000, direction = "INGRESS", protocol = "tcp", ports = ["9345"], source_ranges = ["0.0.0.0/0"], source_tags = [], target_tags = ["rke2-ha"] },
+    { description = "etcd client port", priority = 1001, direction = "INGRESS", protocol = "tcp", ports = ["2379"], source_ranges = ["0.0.0.0/0"], source_tags = [], target_tags = ["rke2-ha"] },
+    { description = "etcd peer port", priority = 1002, direction = "INGRESS", protocol = "tcp", ports = ["2380"], source_ranges = [], source_tags = ["rke2-ha"], target_tags = ["rke2-ha"] },
+    { description = "etcd metrics port", priority = 1003, direction = "INGRESS", protocol = "tcp", ports = ["2381"], source_ranges = [], source_tags = ["rke2-ha"], target_tags = ["rke2-ha"] },
+    { description = "Canal VXLAN overlay", priority = 1004, direction = "INGRESS", protocol = "udp", ports = ["8472"], source_ranges = [], source_tags = ["rke2-ha"], target_tags = ["rke2-ha"] },
+    { description = "Canal health checks", priority = 1005, direction = "INGRESS", protocol = "tcp", ports = ["9099"], source_ranges = [], source_tags = ["rke2-ha"], target_tags = ["rke2-ha"] },
+    { description = "Canal WireGuard IPv4", priority = 1006, direction = "INGRESS", protocol = "udp", ports = ["51820"], source_ranges = [], source_tags = ["rke2-ha"], target_tags = ["rke2-ha"] },
+    { description = "Canal WireGuard IPv6", priority = 1007, direction = "INGRESS", protocol = "udp", ports = ["51821"], source_ranges = [], source_tags = ["rke2-ha"], target_tags = ["rke2-ha"] },
+  ] : []
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -99,16 +110,16 @@ resource "google_compute_subnetwork" "subnet" {
   ip_cidr_range = var.ip_cidr_range
 }
 
-resource "google_compute_firewall" "firewall_22_6443" {
+resource "google_compute_firewall" "firewall_22" {
   count   = var.create_firewall ? 1 : 0
-  name    = "${var.prefix}-firewall-22-6443"
+  name    = "${var.prefix}-firewall-22"
   network = var.vpc == null ? resource.google_compute_network.vpc[0].name : var.vpc
   allow {
     protocol = "icmp"
   }
   allow {
     protocol = "tcp"
-    ports    = ["6443", "22"]
+    ports    = ["22"]
   }
   source_ranges = var.public_ip_source_addresses
   target_tags   = ["${var.prefix}"]
@@ -123,10 +134,31 @@ resource "google_compute_firewall" "default" {
   }
   allow {
     protocol = "tcp"
-    ports    = ["80", "443"]
+    ports    = ["80", "6443", "443"]
   }
   source_ranges = ["0.0.0.0/0"]
   target_tags   = ["${var.prefix}"]
+}
+
+resource "google_compute_firewall" "ha_firewall" {
+  for_each = {
+    for rule in local.ha_ingress_rules :
+    rule.description => rule
+  }
+
+  name    = "${var.prefix}-${replace(lower(each.value.description), " ", "-")}"
+  network = var.vpc == null ? google_compute_network.vpc[0].name : var.vpc
+
+  allow {
+    protocol = each.value.protocol
+    ports    = each.value.ports
+  }
+
+  source_ranges = lookup(each.value, "source_ranges", null)
+  source_tags   = lookup(each.value, "source_tags", null)
+
+  target_tags = local.is_ha ? ["${var.prefix}", "rke2-ha"] : ["${var.prefix}"]
+  priority    = each.value.priority
 }
 
 data "google_compute_zones" "available" {
@@ -155,7 +187,7 @@ resource "google_compute_instance" "default" {
   name         = "${var.prefix}-vm-${count.index + 1}-${random_string.random.result}"
   machine_type = var.instance_type
   zone         = var.zone
-  tags         = ["${var.prefix}"]
+  tags         = local.is_ha ? ["${var.prefix}", "rke2-ha"] : ["${var.prefix}"]
   scheduling {
     preemptible         = var.spot_instance
     provisioning_model  = var.spot_instance ? "SPOT" : "STANDARD"
@@ -182,7 +214,7 @@ resource "google_compute_instance" "default" {
     }
   }
   dynamic "attached_disk" {
-    for_each = google_compute_disk.data_disk
+    for_each = count.index < var.data_disk_count ? [google_compute_disk.data_disk[count.index]] : []
     content {
       source = attached_disk.value.self_link
     }
@@ -196,7 +228,10 @@ resource "google_compute_instance" "default" {
     serial-port-logging-enable = "TRUE"
     serial-port-enable         = "TRUE"
     ssh-keys                   = var.create_ssh_key_pair ? "${local.ssh_username}:${tls_private_key.ssh_private_key[0].public_key_openssh}" : "${local.ssh_username}:${file(local.public_ssh_key_path)}"
-    startup-script             = templatefile("${path.module}/../scripts/startupscript.tftpl", { cloud_provider = "gcp" })
+    startup-script = templatefile("${path.module}/../scripts/startupscript.tftpl", {
+      cloud_provider = "gcp"
+      hostname       = "${var.prefix}-rke2-${count.index + 1}"
+    })
   }
   lifecycle {
     create_before_destroy = true
@@ -253,6 +288,75 @@ resource "null_resource" "rke2_installation" {
   }
 }
 
+resource "null_resource" "get_server_token" {
+  count      = local.is_ha ? 1 : 0
+  depends_on = [null_resource.rke2_installation]
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo cat /var/lib/rancher/rke2/server/node-token > /tmp/rke2-token"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+      host        = google_compute_instance.default[0].network_interface[0].access_config[0].nat_ip
+    }
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+scp -o StrictHostKeyChecking=no \
+-i ${local.private_ssh_key_path} \
+${local.ssh_username}@${google_compute_instance.default[0].network_interface[0].access_config[0].nat_ip}:/tmp/rke2-token ./rke2-token
+EOT
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "rm -f ./rke2-token"
+  }
+}
+
+resource "null_resource" "join_additional_servers" {
+  count = local.is_ha ? local.instance_count - 1 : 0
+
+  depends_on = [
+    null_resource.rke2_installation,
+    null_resource.get_server_token
+  ]
+
+  provisioner "file" {
+    source      = "./rke2-token"
+    destination = "/tmp/rke2-token"
+
+    connection {
+      type        = "ssh"
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+      host        = google_compute_instance.default[count.index + 1].network_interface[0].access_config[0].nat_ip
+    }
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      templatefile("${path.module}/../scripts/rke2-localpath-join-server-install.sh", {
+        public_ip    = google_compute_instance.default[count.index + 1].network_interface[0].access_config[0].nat_ip
+        private_ip   = google_compute_instance.default[0].network_interface[0].network_ip
+        rke2_version = var.rke2_version
+      })
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+      host        = google_compute_instance.default[count.index + 1].network_interface[0].access_config[0].nat_ip
+    }
+  }
+}
+
 resource "null_resource" "retrieve_kubeconfig" {
   depends_on = [null_resource.rke2_installation]
 
@@ -294,6 +398,7 @@ resource "null_resource" "retrieve_kubeconfig" {
     command = "rm -f ./kubeconfig-rke2.yaml"
   }
 }
+
 
 
 #resource "null_resource" "cleanup_certified_raw" {

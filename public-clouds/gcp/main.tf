@@ -22,6 +22,7 @@ resource "local_file" "kubeconfig_placeholder" {
 module "infrastructure" {
   source = "../../modules/infrastructure/gcp"
 
+  ha_setup                   = var.ha_setup
   prefix                     = var.prefix
   project_id                 = var.project_id
   region                     = var.region
@@ -87,6 +88,7 @@ provider "helm" {
 module "kubernetes" {
   source     = "../../modules/kubernetes"
   depends_on = [null_resource.wait_for_k8s_api, data.local_file.kubeconfig_raw]
+  ha_setup   = var.ha_setup
 
   providers = {
     kubernetes = kubernetes

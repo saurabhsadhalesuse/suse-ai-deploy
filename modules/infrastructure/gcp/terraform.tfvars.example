@@ -37,3 +37,5 @@ registry_secretname = "application-collection"
 registry_username = "null"
 registry_password = "null"
 
+# Set to true for 3-node HA cluster
+ha_setup = false
