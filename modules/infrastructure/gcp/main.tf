@@ -174,13 +174,6 @@ resource "random_string" "random" {
   upper   = false
 }
 
-resource "google_compute_disk" "data_disk" {
-  count = var.data_disk_count
-  name  = "${var.prefix}-data-disk-${count.index + 1}-${random_string.random.result}"
-  type  = var.data_disk_type
-  size  = var.data_disk_size
-  zone  = var.zone
-}
 
 resource "google_compute_instance" "default" {
   count        = local.instance_count
@@ -213,12 +206,7 @@ resource "google_compute_instance" "default" {
       interface = "SCSI"
     }
   }
-  dynamic "attached_disk" {
-    for_each = count.index < var.data_disk_count ? [google_compute_disk.data_disk[count.index]] : []
-    content {
-      source = attached_disk.value.self_link
-    }
-  }
+
   network_interface {
     network    = var.vpc == null ? resource.google_compute_network.vpc[0].name : var.vpc
     subnetwork = var.subnet == null ? resource.google_compute_subnetwork.subnet[0].name : var.subnet
