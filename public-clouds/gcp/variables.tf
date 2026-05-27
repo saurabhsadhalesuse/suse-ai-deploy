@@ -123,31 +123,13 @@ variable "os_disk_type" {
 variable "os_disk_size" {
   description = "Specifies the size of the disk attached to each node, in GB. Default is '50'."
   type        = number
-  default     = 50
+  default     = 350
 }
 
 variable "instance_type" {
   description = "Specifies the name of a Google Compute Engine machine type. Default is 'n2-standard-16'."
   type        = string
   default     = "n1-standard-16"
-}
-
-variable "data_disk_count" {
-  description = "Specifies the number of additional data disks to attach to each VM instance. Default is 1."
-  type        = number
-  default     = 1
-}
-
-variable "data_disk_type" {
-  description = "Specifies the type of the disks attached to each node (e.g., 'pd-standard', 'pd-ssd', or 'pd-balanced'). Default is 'pd-ssd'."
-  type        = string
-  default     = "pd-ssd"
-}
-
-variable "data_disk_size" {
-  description = "Specifies the size of the additional data disks for each VM instance, in GB. Default is '350'."
-  type        = number
-  default     = 350
 }
 
 variable "startup_script" {
@@ -265,4 +247,10 @@ variable "public_ip_source_addresses" {
   description = "List of CIDRs allowed to reach port 22 (SSH). Defaults to the public IP of the machine running Terraform."
   type        = list(string)
   default     = []
+}
+
+variable "ha_setup" {
+  description = "Set to true for 3-node HA cluster"
+  type        = bool
+  default     = false
 }
