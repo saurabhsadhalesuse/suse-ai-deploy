@@ -1,4 +1,4 @@
-prefix       = "dkulkarni"
+prefix       = "azuretf"
 rke2_version = "v1.32.10+rke2r1"
 
 # Azure specific location (corresponds to us-west-2 in AWS)
@@ -11,5 +11,8 @@ zone = "1"
 instance_type = "Standard_NC4as_T4_v3"
 
 # Root disk size matching your AWS setup
-os_disk_size = 150
+os_disk_size = 350
+
+# Set to true for 3-node HA cluster
+ha_setup = false
 

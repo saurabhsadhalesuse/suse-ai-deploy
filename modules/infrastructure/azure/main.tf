@@ -1,11 +1,103 @@
 locals {
+  instance_count         = var.ha_setup ? 3 : 1
+  is_ha                  = var.ha_setup && local.instance_count == 3
   private_ssh_key_path   = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path    = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
-  instance_count         = 1
   certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
   certified_image_url    = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
   certified_image_sha512 = "5cdf863e0548498585e951e861adee67054fb7f762161cdbf6e469b9a63564aa256a53cb9f8009cac9aaf6c7467de938a9c2a3d3ea2c756aa99f295b487defc5"
   ssh_username           = "opensuse"
+
+  ha_ingress_rules = local.is_ha ? [
+    {
+      name                       = "rke2-node-join"
+      priority                   = 1000
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "9345"
+      source_address_prefix      = "*" # Equivalent to 0.0.0.0/0
+      destination_address_prefix = "VirtualNetwork"
+    },
+    {
+      name                       = "etcd-client-port"
+      priority                   = 1010
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "2379"
+      source_address_prefix      = "*"
+      destination_address_prefix = "VirtualNetwork"
+    },
+    {
+      name                       = "etcd-peer-port"
+      priority                   = 1020
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "2380"
+      source_address_prefix      = "VirtualNetwork" # Replaces self=true
+      destination_address_prefix = "VirtualNetwork"
+    },
+    {
+      name                       = "etcd-metrics-port"
+      priority                   = 1030
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "2381"
+      source_address_prefix      = "VirtualNetwork"
+      destination_address_prefix = "VirtualNetwork"
+    },
+    {
+      name                       = "canal-vxlan-overlay"
+      priority                   = 1040
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Udp"
+      source_port_range          = "*"
+      destination_port_range     = "8472"
+      source_address_prefix      = "VirtualNetwork"
+      destination_address_prefix = "VirtualNetwork"
+    },
+    {
+      name                       = "canal-health-checks"
+      priority                   = 1050
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "9099"
+      source_address_prefix      = "VirtualNetwork"
+      destination_address_prefix = "VirtualNetwork"
+    },
+    {
+      name                       = "canal-wireguard-ipv4"
+      priority                   = 1060
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Udp"
+      source_port_range          = "*"
+      destination_port_range     = "51820"
+      source_address_prefix      = "VirtualNetwork"
+      destination_address_prefix = "VirtualNetwork"
+    },
+    {
+      name                       = "canal-wireguard-ipv6"
+      priority                   = 1070
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Udp"
+      source_port_range          = "*"
+      destination_port_range     = "51821"
+      source_address_prefix      = "VirtualNetwork"
+      destination_address_prefix = "VirtualNetwork"
+    }
+  ] : []
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -132,7 +224,7 @@ resource "azurerm_subnet" "subnet" {
 
 resource "azurerm_public_ip" "pip" {
   count               = local.instance_count
-  name                = "${var.prefix}-pip"
+  name                = "${var.prefix}-pip-${count.index + 1}"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   allocation_method   = "Static"
@@ -140,51 +232,113 @@ resource "azurerm_public_ip" "pip" {
 }
 
 # --- Security Groups (NSG) ---
-resource "azurerm_network_security_group" "nsg" {
+resource "azurerm_network_security_group" "default" {
   name                = "${var.prefix}-nsg"
-  location            = azurerm_resource_group.rg.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 
+  # Rule 1: SSH
   security_rule {
     name                       = "SSH"
-    priority                   = 1001
+    priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefixes    = var.public_ip_source_addresses
+    source_address_prefixes    = var.public_ip_source_addresses # Ensure this variable is a list of CIDRs
     destination_address_prefix = "*"
   }
 
+  # Rule 2: RKE2 API
   security_rule {
-    name                       = "RKE2-API"
-    priority                   = 1002
+    name                       = "RKE2_API"
+    priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "6443"
-    source_address_prefixes    = var.public_ip_source_addresses
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
+  # Rule 3: Kubelet Metrics
   security_rule {
-    name                       = "HTTP-S"
-    priority                   = 1003
+    name                       = "Kubelet_Metrics"
+    priority                   = 120
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_ranges    = ["80", "443"]
+    destination_port_range     = "10250"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
+  }
+
+  # Rule 4: Kubernetes NodePorts
+  security_rule {
+    name                       = "Kubernetes_NodePorts"
+    priority                   = 130
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "30000-32767" # Azure handles port ranges using a hyphen string
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # Rule 5: HTTP
+  security_rule {
+    name                       = "HTTP"
+    priority                   = 140
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # Rule 6: HTTPS
+  security_rule {
+    name                       = "HTTPS"
+    priority                   = 150
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # Dynamic Rules for HA Ingress
+  dynamic "security_rule" {
+    for_each = local.ha_ingress_rules
+    content {
+      name                       = security_rule.value.name # Changed from .description
+      priority                   = security_rule.value.priority
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = security_rule.value.protocol
+      source_port_range          = "*"
+      destination_port_range     = security_rule.value.destination_port_range # Changed inline ternary expression
+      source_address_prefix      = security_rule.value.source_address_prefix  # Changed from conditional ternary on .self
+      destination_address_prefix = security_rule.value.destination_address_prefix
+    }
+
+  }
+  tags = {
+    Name = "${var.prefix}-nsg"
   }
 }
 
 resource "azurerm_network_interface" "nic" {
   count               = local.instance_count
-  name                = "${var.prefix}-nic"
+  name                = "${var.prefix}-nic-${count.index + 1}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -199,7 +353,7 @@ resource "azurerm_network_interface" "nic" {
 resource "azurerm_network_interface_security_group_association" "nic_nsg" {
   count                     = local.instance_count
   network_interface_id      = azurerm_network_interface.nic[count.index].id
-  network_security_group_id = azurerm_network_security_group.nsg.id
+  network_security_group_id = azurerm_network_security_group.default.id
 
   depends_on = [
     azurerm_network_interface.nic
@@ -209,7 +363,7 @@ resource "azurerm_network_interface_security_group_association" "nic_nsg" {
 # --- Virtual Machine ---
 resource "azurerm_linux_virtual_machine" "opensuse_gpu" {
   count               = local.instance_count
-  name                = "${var.prefix}-vm"
+  name                = "${var.prefix}-vm-${count.index + 1}"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   size                = var.instance_type # e.g., Standard_NC6s_v3
@@ -230,7 +384,10 @@ resource "azurerm_linux_virtual_machine" "opensuse_gpu" {
 
   source_image_id = azurerm_image.suseaitf.id
 
-  custom_data = base64encode(templatefile("${path.module}/../scripts/startupscript.tftpl", { cloud_provider = "azure" }))
+  custom_data = base64encode(templatefile("${path.module}/../scripts/startupscript.tftpl", {
+    cloud_provider = "azure"
+    hostname       = "${var.prefix}-rke2-${count.index + 1}"
+  }))
 
   tags = {
     Name = "${var.prefix}-opensuse-rke2"
@@ -240,6 +397,7 @@ resource "azurerm_linux_virtual_machine" "opensuse_gpu" {
 # --- Provisioning Logic ---
 
 resource "null_resource" "wait_for_gpu" {
+  count      = local.instance_count
   depends_on = [azurerm_linux_virtual_machine.opensuse_gpu]
 
   provisioner "remote-exec" {
@@ -281,6 +439,76 @@ resource "null_resource" "rke2_installation" {
       private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
       host        = azurerm_public_ip.pip[0].ip_address
     }
+  }
+}
+
+resource "null_resource" "join_additional_servers" {
+  count = local.is_ha ? local.instance_count - 1 : 0
+
+  depends_on = [
+    null_resource.rke2_installation,
+    null_resource.get_server_token
+  ]
+
+  provisioner "file" {
+    source      = "./rke2-token"
+    destination = "/tmp/rke2-token"
+
+    connection {
+      type = "ssh"
+      # Azure uses public_ip_address and private_ip_address attributes
+      host        = azurerm_linux_virtual_machine.opensuse_gpu[count.index + 1].public_ip_address
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+    }
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      templatefile("${path.module}/../scripts/rke2-localpath-join-server-install.sh", {
+        public_ip    = azurerm_linux_virtual_machine.opensuse_gpu[count.index + 1].public_ip_address
+        private_ip   = azurerm_linux_virtual_machine.opensuse_gpu[0].private_ip_address
+        rke2_version = var.rke2_version
+      })
+    ]
+
+    connection {
+      type        = "ssh"
+      host        = azurerm_linux_virtual_machine.opensuse_gpu[count.index + 1].public_ip_address
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+    }
+  }
+}
+
+resource "null_resource" "get_server_token" {
+  count      = local.is_ha ? 1 : 0
+  depends_on = [null_resource.rke2_installation]
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo cat /var/lib/rancher/rke2/server/node-token > /tmp/rke2-token"
+    ]
+
+    connection {
+      type        = "ssh"
+      host        = azurerm_public_ip.pip[0].ip_address
+      user        = local.ssh_username
+      private_key = var.create_ssh_key_pair ? tls_private_key.ssh_private_key[0].private_key_openssh : file(local.private_ssh_key_path)
+    }
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+scp -o StrictHostKeyChecking=no \
+-i ${local.private_ssh_key_path} \
+${local.ssh_username}@${azurerm_public_ip.pip[0].ip_address}:/tmp/rke2-token ./rke2-token
+EOT
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "rm -f ./rke2-token"
   }
 }
 

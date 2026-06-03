@@ -24,6 +24,7 @@ resource "local_file" "kubeconfig_placeholder" {
 module "infrastructure" {
   source = "../../modules/infrastructure/azure"
 
+  ha_setup                   = var.ha_setup
   prefix                     = var.prefix
   location                   = var.location
   zone                       = var.zone
@@ -86,6 +87,7 @@ provider "helm" {
 module "kubernetes" {
   source     = "../../modules/kubernetes"
   depends_on = [null_resource.wait_for_k8s_api, data.local_file.kubeconfig_raw]
+  ha_setup   = var.ha_setup
 
   providers = {
     kubernetes = kubernetes
