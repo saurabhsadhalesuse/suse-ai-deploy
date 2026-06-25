@@ -163,7 +163,7 @@ variable "zone" {
 variable "rke2_version" {
   description = "The version of RKE2 to install"
   type        = string
-  default     = "null"
+  default     = "v1.32.10+rke2r1" 
 }
 
 variable "registry_name" {
@@ -250,7 +250,7 @@ variable "public_ip_source_addresses" {
 }
 
 variable "ha_setup" {
-  description = "Set to true for 3-node HA cluster"
+  description = "Set to true to deploy a 3-node HA RKE2 cluster with Longhorn. Default is single-node"
   type        = bool
   default     = false
 }
