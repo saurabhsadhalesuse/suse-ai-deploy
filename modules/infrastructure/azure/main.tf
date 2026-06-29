@@ -3,8 +3,8 @@ locals {
   is_ha                  = var.ha_setup && local.instance_count == 3
   private_ssh_key_path   = var.ssh_private_key_path == null ? "${path.cwd}/${var.prefix}-ssh_private_key.pem" : var.ssh_private_key_path
   public_ssh_key_path    = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
-  certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
-  certified_image_url    = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
+  certified_image_name   = "opensuse-leap-15-6-suse-ai-deploy-cloud-image.x86_64.vhd"
+  certified_image_url    = "https://github.com/rancher/suse-ai-deploy/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
   certified_image_sha512 = "5cdf863e0548498585e951e861adee67054fb7f762161cdbf6e469b9a63564aa256a53cb9f8009cac9aaf6c7467de938a9c2a3d3ea2c756aa99f295b487defc5"
   ssh_username           = "opensuse"
 
@@ -557,6 +557,6 @@ resource "null_resource" "retrieve_kubeconfig" {
 #  count      = var.certified_os_image ? 1 : 0
 #  provisioner "local-exec" {
 #    when    = destroy
-#    command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
+#    command = "rm ${path.cwd}/opensuse-leap-15-6-suse-ai-deploy-cloud-image.x86_64.vhd"
 #  }
 #}
