@@ -31,7 +31,7 @@ variable "os_disk_size" {
 variable "ssh_username" {
   description = "The default SSH user for the AMI"
   type        = string
-  default     = "opensuse" # Default for custom build image for suse-ai-tf
+  default     = "opensuse" # Default for custom build image for suse-ai-deploy
 }
 
 variable "create_ssh_key_pair" {
@@ -174,7 +174,7 @@ variable "rancher_insecure" {
 variable "certified_os_image_tag" {
   description = "Specifies which GitHub release to use for the OpenSUSE image. Default is 'build-1'."
   type        = string
-  default     = "build-11"
+  default     = "build-1"
   validation {
     condition     = can(regex("^build-[0-9]+$", var.certified_os_image_tag))
     error_message = "Invalid value for certified_os_image_tag. Allowed values must match the format 'build-<number>'."

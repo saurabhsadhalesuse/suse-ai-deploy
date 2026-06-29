@@ -9,8 +9,8 @@ locals {
   target_subnet_id       = var.use_existing_vpc ? var.subnet_id : aws_subnet.default_subnet[0].id
   host                   = var.associate_public_ip ? aws_instance.opensuse_gpu[0].public_ip : aws_instance.opensuse_gpu[0].private_ip
   ssh_username           = "opensuse"
-  certified_image_name   = "opensuse-leap-15-6-suse-ai-tf-cloud-image.x86_64.vhd"
-  certified_image_url    = "https://github.com/devenkulkarni/suse-ai-tf/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
+  certified_image_name   = "opensuse-leap-15-6-suse-ai-deploy-cloud-image.x86_64.vhd"
+  certified_image_url    = "https://github.com/rancher/suse-ai-deploy/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
   certified_image_sha512 = "5cdf863e0548498585e951e861adee67054fb7f762161cdbf6e469b9a63564aa256a53cb9f8009cac9aaf6c7467de938a9c2a3d3ea2c756aa99f295b487defc5"
   username               = element(split("/", data.aws_caller_identity.current.arn), length(split("/", data.aws_caller_identity.current.arn)) - 1)
   common_tags = {
@@ -173,7 +173,7 @@ resource "aws_iam_role_policy" "vmimport" {
 }
 
 resource "aws_ebs_snapshot_import" "opensuse_snapshot" {
-  description = "Opensuse Cerfied Image for SUSE AI TF"
+  description = "Opensuse Cerfied Image for SUSE AI DEPLOY"
   role_name   = aws_iam_role.vmimport.name
   lifecycle {
     ignore_changes = [description]
@@ -189,7 +189,7 @@ resource "aws_ebs_snapshot_import" "opensuse_snapshot" {
 }
 
 resource "aws_ami" "opensuse_ami" {
-  name                = "opensuse-suse-ai-tf-ami"
+  name                = "opensuse-suse-ai-deploy-ami"
   virtualization_type = "hvm"
   root_device_name    = "/dev/xvda"
   ena_support         = true

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<image schemaversion="7.5" name="opensuse-leap-15-6-suse-ai-tf-cloud-image">
+<image schemaversion="7.5" name="opensuse-leap-15-6-suse-ai-deploy-cloud-image">
     <description type="system">
-        <author>SUSE AI TF maintainers</author>
+        <author>SUSE AI DEPLOY maintainers</author>
         <contact>none</contact>
-        <specification>openSUSE Leap 15.6 image certified for SUSE AI TF</specification>
+        <specification>openSUSE Leap 15.6 image certified for SUSE AI DEPLOY</specification>
     </description>
     <preferences>
         <version>1.0.0</version>
