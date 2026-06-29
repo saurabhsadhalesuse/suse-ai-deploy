@@ -1,26 +1,31 @@
 variable "prefix" {
-  type    = string
-  default = "aws-tf"
+  description = "Prefix for all resources to ensure uniqueness"
+  type        = string
+  default     = "aws-tf"
 }
 
 variable "region" {
-  type    = string
-  default = "us-west-2"
+  description = "AWS region to deploy into"
+  type        = string
+  default     = "us-west-2"
 }
 
 variable "zone" {
-  type    = string
-  default = "us-west-2a"
+  description = "Availability zone for the instance and EBS volume"
+  type        = string
+  default     = "us-west-2a"
 }
 
 variable "instance_type" {
-  type    = string
-  default = "g4dn.xlarge"
+  description = "Instance type for the VM (must support GPUs, e.g., g4dn.xlarge)"
+  type        = string
+  default     = "g4dn.xlarge"
 }
 
 variable "os_disk_size" {
-  type    = number
-  default = 500
+  description = "Size of the root OS disk in GB"
+  type        = number
+  default     = 500
 }
 
 variable "ssh_username" {
@@ -30,28 +35,33 @@ variable "ssh_username" {
 }
 
 variable "create_ssh_key_pair" {
-  type    = bool
-  default = true
+  description = "Whether to generate a new SSH key pair"
+  type        = bool
+  default     = true
 }
 
 variable "ssh_private_key_path" {
-  type    = string
-  default = null
+  description = "Path to save/read the private key (null for default naming)"
+  type        = string
+  default     = null
 }
 
 variable "ssh_public_key_path" {
-  type    = string
-  default = null
+  description = "Path to save/read the public key (null for default naming)"
+  type        = string
+  default     = null
 }
 
 variable "existing_key_name" {
-  type    = string
-  default = ""
+  description = "Existing key name"
+  type        = string
+  default     = ""
 }
 
 variable "use_existing_vpc" {
-  type    = bool
-  default = false
+  description = "Specifies whether a VPC and Subnet should be created for the instances. Default is 'true'."
+  type        = bool
+  default     = false
 }
 
 variable "vpc_id" {
