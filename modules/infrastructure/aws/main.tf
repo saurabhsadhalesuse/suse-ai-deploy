@@ -18,14 +18,14 @@ locals {
   }
 
   ha_ingress_rules = local.is_ha ? [
-    { description = "RKE2 node join",       from_port = 9345,  to_port = 9345,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], self = true  },
-    { description = "etcd client port",     from_port = 2379,  to_port = 2379,  protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], self = false },
-    { description = "etcd peer port",       from_port = 2380,  to_port = 2380,  protocol = "tcp", cidr_blocks = [],             self = true  },
-    { description = "etcd metrics port",    from_port = 2381,  to_port = 2381,  protocol = "tcp", cidr_blocks = [],             self = true  },
-    { description = "Canal VXLAN overlay",  from_port = 8472,  to_port = 8472,  protocol = "udp", cidr_blocks = [],             self = true  },
-    { description = "Canal health checks",  from_port = 9099,  to_port = 9099,  protocol = "tcp", cidr_blocks = [],             self = true  },
-    { description = "Canal WireGuard IPv4", from_port = 51820, to_port = 51820, protocol = "udp", cidr_blocks = [],             self = true  },
-    { description = "Canal WireGuard IPv6", from_port = 51821, to_port = 51821, protocol = "udp", cidr_blocks = [],             self = true  },
+    { description = "RKE2 node join", from_port = 9345, to_port = 9345, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], self = true },
+    { description = "etcd client port", from_port = 2379, to_port = 2379, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], self = false },
+    { description = "etcd peer port", from_port = 2380, to_port = 2380, protocol = "tcp", cidr_blocks = [], self = true },
+    { description = "etcd metrics port", from_port = 2381, to_port = 2381, protocol = "tcp", cidr_blocks = [], self = true },
+    { description = "Canal VXLAN overlay", from_port = 8472, to_port = 8472, protocol = "udp", cidr_blocks = [], self = true },
+    { description = "Canal health checks", from_port = 9099, to_port = 9099, protocol = "tcp", cidr_blocks = [], self = true },
+    { description = "Canal WireGuard IPv4", from_port = 51820, to_port = 51820, protocol = "udp", cidr_blocks = [], self = true },
+    { description = "Canal WireGuard IPv6", from_port = 51821, to_port = 51821, protocol = "udp", cidr_blocks = [], self = true },
   ] : []
 }
 
