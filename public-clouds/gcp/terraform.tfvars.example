@@ -62,4 +62,4 @@ rancher_insecure = false
 public_ip_source_addresses = []
 
 ## Set to true for 3-node HA cluste
-ha-setup = false
+ha_setup = false
