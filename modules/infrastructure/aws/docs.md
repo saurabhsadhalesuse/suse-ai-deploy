@@ -54,7 +54,7 @@ No modules.
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_associate_public_ip"></a> [associate\_public\_ip](#input\_associate\_public\_ip) | Set to true if using a public subnet, false for private. | `bool` | `true` | no |
 | <a name="input_certified_os_image"></a> [certified\_os\_image](#input\_certified\_os\_image) | Specifies whether to use the SUSE AI DEPLOY OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'. | `bool` | `false` | no |
-| <a name="input_certified_os_image_tag"></a> [certified\_os\_image\_tag](#input\_certified\_os\_image\_tag) | Specifies which GitHub release to use for the OpenSUSE image. Default is 'build-1'. | `string` | `"build-1"` | no |
+| <a name="input_certified_os_image_tag"></a> [certified\_os\_image\_tag](#input\_certified\_os\_image\_tag) | Specifies which GitHub release to use for the OpenSUSE image. Default is 'build-2'. | `string` | `"build-2"` | no |
 | <a name="input_create_ssh_key_pair"></a> [create\_ssh\_key\_pair](#input\_create\_ssh\_key\_pair) | Whether to generate a new SSH key pair | `bool` | `true` | no |
 | <a name="input_existing_key_name"></a> [existing\_key\_name](#input\_existing\_key\_name) | n/a | `string` | `null` | no |
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | Instance type for the VM (must support GPUs, e.g., g4dn.xlarge) | `string` | `"g4dn.xlarge"` | no |
