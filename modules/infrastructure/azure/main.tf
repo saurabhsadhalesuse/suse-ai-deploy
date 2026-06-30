@@ -5,7 +5,7 @@ locals {
   public_ssh_key_path    = var.ssh_public_key_path == null ? "${path.cwd}/${var.prefix}-ssh_public_key.pem" : var.ssh_public_key_path
   certified_image_name   = "opensuse-leap-15-6-suse-ai-deploy-cloud-image.x86_64.vhd"
   certified_image_url    = "https://github.com/rancher/suse-ai-deploy/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
-  certified_image_sha512 = "5cdf863e0548498585e951e861adee67054fb7f762161cdbf6e469b9a63564aa256a53cb9f8009cac9aaf6c7467de938a9c2a3d3ea2c756aa99f295b487defc5"
+  certified_image_sha512 = "5d96f40c22786955d19ffdccfe2acb4817717ca476247bf91f870233f25c50da7609e8aa01e8242c3510fe80e20fbb6323a0e19bcd16ac67b66774c17bdaf992"
   ssh_username           = "opensuse"
 
   ha_ingress_rules = local.is_ha ? [

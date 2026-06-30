@@ -6,7 +6,7 @@ locals {
   ssh_username           = "opensuse"
   certified_image_name   = "opensuse-leap-15-6-suse-ai-deploy-cloud-image.x86_64.raw.tar.gz"
   certified_image_url    = "https://github.com/rancher/suse-ai-deploy/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}"
-  certified_image_sha512 = "6b43e8152f37f5697b052cb27377af40348ea1c28d6f764afea0147b23f329a6b790c4744216632a368362630adb34e4039ae67be2b13a92d30e53e43c5241ca"
+  certified_image_sha512 = "806fcc47b510ac8e63b9ca1550a872958a0bfbdb4e74fadad0f6c91810aee1a954dab7d1b273a6e5b09300908ce4445f915b10618ad647a647b18718dfff84ab"
   ha_ingress_rules = local.is_ha ? [
     { description = "RKE2 node join", priority = 1000, direction = "INGRESS", protocol = "tcp", ports = ["9345"], source_ranges = ["0.0.0.0/0"], source_tags = [], target_tags = ["rke2-ha"] },
     { description = "etcd client port", priority = 1001, direction = "INGRESS", protocol = "tcp", ports = ["2379"], source_ranges = ["0.0.0.0/0"], source_tags = [], target_tags = ["rke2-ha"] },
