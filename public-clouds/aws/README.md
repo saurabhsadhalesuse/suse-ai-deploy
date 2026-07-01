@@ -37,6 +37,8 @@ terraform plan -out=tfplan
 terraform apply --auto-approve
 ```
 
+Default ssh_username to access the instances on cloud is `opensuse` as a custom built OS image is used
+
 ## Cleanup:
 
 To tear down the infrastructure and avoid costs:
@@ -52,8 +54,8 @@ Check out the output of `terraform output` and it should have the URL to the SUS
 Outputs:
 
 instance_public_ip = "172.10.10.123"
-kubeconfig_path = "/Users/devendrakulkarni/suse-ai/public-clouds/aws/kubeconfig-rke2.yaml"
-ssh_command = "ssh -i /Users/devendrakulkarni/suse-ai/public-clouds/aws/dksuseai-ssh_private_key.pem opensuse@172.10.10.112"
+kubeconfig_path = "/Users/devendrakulkarni/suse-ai-deploy/public-clouds/aws/kubeconfig-rke2.yaml"
+ssh_command = "ssh -i /Users/devendrakulkarni/suse-ai-deploy/public-clouds/aws/dksuseai-ssh_private_key.pem opensuse@172.10.10.112"
 suse_ai_webui_url = "suse-ai.172.10.10.123.sslip.io"
 ```
 
