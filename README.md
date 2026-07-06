@@ -1,5 +1,8 @@
 # SUSE AI Deployment on Public Clouds:
 
+> [!NOTE]
+> ⚠️ **SUSE AI Deploy** is currently an **unofficial, community-maintained project** and is **not supported by SUSE**. Use it at your own discretion.
+
 This repository contains Terraform configurations to deploy complete SUSE AI stack on GPU-enabled infrastructure on public clouds [AWS/Azure/GCP]. It automates the provisioning of cloud resources and the deployment of essential AI components.
 
 ## 🏗 Architecture Overview
