@@ -85,7 +85,7 @@
         <package name="cracklib-dict-full"/>
         <package name="ca-certificates"/>
         <package name="ca-certificates-mozilla"/>
-        <package name="openSUSE-release-Leap"/>
+        <package name="openSUSE-repos-Leap"/>
         <package name="zypper"/>
     </packages>
 </image>
