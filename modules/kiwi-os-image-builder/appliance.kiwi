@@ -58,6 +58,7 @@
         <package name="which"/>
         <package name="iproute2"/>
         <package name="iputils"/>
+        <package name="NetworkManager"/>
         <package name="lvm2"/>
         <package name="openssh"/>
         <package name="cloud-init"/>
