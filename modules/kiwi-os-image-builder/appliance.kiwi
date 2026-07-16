@@ -27,6 +27,7 @@
         <source path="obsrepositories:/"/>
     </repository>
     <packages type="image">
+        <package name="dracut"/>
         <package name="dracut-kiwi-oem-repart"/>
         <package name="dracut-kiwi-lib"/>
         <package name="gptfdisk"/>
