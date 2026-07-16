@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<image schemaversion="7.5" name="opensuse-leap-15-6-suse-ai-deploy-cloud-image">
+<image schemaversion="7.5" name="opensuse-leap-16-0-suse-ai-deploy-cloud-image">
     <description type="system">
         <author>SUSE AI DEPLOY maintainers</author>
         <contact>none</contact>
-        <specification>openSUSE Leap 15.6 image certified for SUSE AI DEPLOY</specification>
+        <specification>openSUSE Leap 16.0 image certified for SUSE AI DEPLOY</specification>
     </description>
     <preferences>
         <version>1.0.0</version>
@@ -13,7 +13,7 @@
         <timezone>UTC</timezone>
         <rpm-excludedocs>true</rpm-excludedocs>
         <rpm-check-signatures>false</rpm-check-signatures>
-	<type image="oem" filesystem="ext4" firmware="efi"
+        <type image="oem" filesystem="ext4" firmware="efi"
               kernelcmdline="console=ttyS0 nvme_core.io_timeout=255"
               format="qcow2">
            <bootloader name="grub2" timeout="10"/>
@@ -27,7 +27,6 @@
         <source path="obsrepositories:/"/>
     </repository>
     <packages type="image">
-        <!-- Base system / Boot -->
         <package name="dracut-kiwi-oem-repart"/>
         <package name="dracut-kiwi-lib"/>
         <package name="gptfdisk"/>
@@ -46,12 +45,14 @@
         <package name="filesystem"/>
         <package name="xfsprogs"/>
         <package name="e2fsprogs"/>
-        <!-- System utilities -->
         <package name="util-linux"/>
         <package name="tar"/>
         <package name="parted"/>
         <package name="less"/>
-        <package name="vim-small"/> <package name="gcc"/> <package name="make"/> <package name="iptables"/>
+        <package name="vim-small"/> 
+        <package name="gcc"/> 
+        <package name="make"/> 
+        <package name="iptables"/>
         <package name="conntrack-tools"/>
         <package name="bash-completion"/>
         <package name="which"/>
@@ -63,7 +64,6 @@
         <package name="python3-websockify"/>
         <package name="socat"/>
         <package name="sshpass"/>
-        <!-- Services / Daemons -->
         <package name="nginx"/>
         <package name="chrony"/>
         <package name="cron"/>
@@ -75,7 +75,6 @@
         <package name="open-iscsi"/>
         <package name="cryptsetup"/>
         <package name="patterns-openSUSE-base"/>
-        <!-- Google Agents -->
         <package name="google-guest-agent"/>
         <package name="google-osconfig-agent"/>
     </packages>
@@ -86,7 +85,7 @@
         <package name="cracklib-dict-full"/>
         <package name="ca-certificates"/>
         <package name="ca-certificates-mozilla"/>
-        <package name="openSUSE-release"/>
+        <package name="openSUSE-release-Leap"/>
         <package name="zypper"/>
     </packages>
 </image>
